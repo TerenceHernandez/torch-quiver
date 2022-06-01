@@ -7,7 +7,7 @@ import os.path as osp
 from torch_sparse import SparseTensor
 import time
 import numpy as np
-from quiver.partition import partition_with_replication, partition_without_replication, select_nodes
+from .old_partition import partition_with_replication, partition_without_replication, select_nodes
 
 SCALE = 1
 GPU_CACHE_GB = 8
@@ -74,6 +74,8 @@ def get_nonzero(data_path):
 def preprocess(data_path, host, host_size, p2p_group, p2p_size):
     dataset = MAG240MDataset(data_path)
     path = f'{dataset.dir}/paper_to_paper_symmetric.pt'
+
+    # Preprocess adjacency matrix into a SparseTensor and save in CSR format
     if not osp.exists(path):
         t = time.perf_counter()
         print('Converting adjacency matrix...', end=' ', flush=True)
@@ -98,15 +100,17 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
                                  "mag240m_kddcup2021/csr/indptr.pt"))
     indices = torch.load(
         osp.join(data_path, "mag240m_kddcup2021/csr/indices.pt"))
+
+    # Train_idx = torch tensor containing all the idexes of training paper nodes
     train_idx = torch.from_numpy(dataset.get_idx_split('train')).to(0)
-    idx_len = train_idx.size(0)
-    nodes = indptr.size(0) - 1
+    idx_len = train_idx.size(0)  # Number of total training TARGET NODES
+    nodes = indptr.size(0) - 1  # Number of TOTAL NODES
     local_gpus = p2p_group * p2p_size
     global_gpus = p2p_group * p2p_size * host_size
     train_idxs = []
     beg = 0
     for i in range(global_gpus):
-        end = min(idx_len, beg + (idx_len // global_gpus))
+        end = min(idx_len, beg + (idx_len // global_gpus))  # split Training nodes evenly across X GPUs
         train_idxs.append(train_idx[beg:end])
         beg = end
 
@@ -121,6 +125,7 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
         p2p_probs = [None] * p2p_size
         for i in range(p2p_size):
             p2p_train_idx = torch.LongTensor([]).to(0)
+            # Concatenates GPU idx on same clique to along the same dimension (just 1D array)
             for j in range(p2p_group):
                 gpu_index = h * p2p_size * p2p_group + p2p_size * j + i
                 gpu_train_idx = train_idxs[gpu_index]
@@ -128,12 +133,15 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
             p2p_probs[i] = quiver_sampler.sample_prob(p2p_train_idx, nodes)
         host_p2p_probs[h] = p2p_probs
         probs_sum = torch.zeros_like(p2p_probs[0])
+        # Sums All host's P2P cliques (element-wise add)
         for i in range(p2p_size):
             probs_sum += p2p_probs[i]
         host_probs_sum[h] = probs_sum
-    gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)
+    # Cache = RAM / DRAM
+    gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)  # number of features that can fit
     cpu_size = CPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)
-    _, nz = select_nodes(0, host_probs_sum, None)
+    # host_probs_sum has dimension: (host, nodes_per_clique)
+    _, nz = select_nodes(0, host_probs_sum, None)  # nz.size = nodes per GPU
     res = partition_without_replication(0, host_probs_sum, nz.squeeze())
     global2host = torch.zeros(nodes, dtype=torch.int32, device=0) - 1
     t1 = time.time()
@@ -141,12 +149,12 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
     for h in range(host_size):
         global2host[res[h]] = h
     torch.save(global2host.cpu(),
-               osp.join(data_path, f'{host_size}h/global2host.pt'))
+               osp.join(data_path, f'{host_size}h/global2host.pt')) # global2host is mapping of (nodes, host_num)
     t2 = time.time()
     print(f'g2h {t2 - t1}')
 
     for host in range(host_size):
-        choice = res[h]
+        choice = res[h] # node_ids of current host?? where did 'h' come from
         local_p2p_probs = host_p2p_probs[host]
         local_probs_sum = host_probs_sum[host]
         local_probs_sum_clone = local_probs_sum.clone()
@@ -157,12 +165,14 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
         _, local_order = torch.sort(local_probs_sum_clone, descending=True)
         del local_probs_sum_clone
         local_replicate_size = min(
-            nz.size(0), cpu_size + gpu_size * p2p_size) - choice.size(0)
-        replicate = local_order[:local_replicate_size]
+            nz.size(0), cpu_size + gpu_size * p2p_size) - choice.size(0)  # replicate up to limit of host+local_gpu_capacity
+        replicate = local_order[:local_replicate_size] # indication that the most frequently updated data should be replicated
         torch.save(replicate.cpu(),
                    osp.join(data_path, f'{host_size}h/replicate{host}.pt'))
         t3 = time.time()
         print(f'replicate {t3 - t2}')
+
+        # Finally partition across GPUs
         local_all = torch.cat([choice, replicate])
         _, local_prev_order = torch.sort(local_probs_sum[local_all],
                                          descending=True)
@@ -269,7 +279,6 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
 #         t = torch.zeros((gpu_size, 768 * SCALE))
 #         torch.save(t, f'/mnt/data/mag/{host_size}h/gpu_feat{host}_{gpu}.pt')
 #         del t
-
-preprocess('/data/mag', 0, 1, 2, 4)
+preprocess('/data/mag', 0, 1, 1, 2)
 # preprocess_unbalance(0, 1, 2, 4)
 # init_feat(0, 1, 2, 4)
