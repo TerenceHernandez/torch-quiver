@@ -148,6 +148,10 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
     print(f'prob {t1 - t0}')
     for h in range(host_size):
         global2host[res[h]] = h
+
+    # Save the allocation as a PTH file
+    if not osp.exists(f'{dataset.dir}/{host_size}h/'):
+        os.makedirs(f'{data_path}/{host_size}h/')
     torch.save(global2host.cpu(),
                osp.join(data_path, f'{host_size}h/global2host.pt')) # global2host is mapping of (nodes, host_num)
     t2 = time.time()
@@ -279,6 +283,8 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
 #         t = torch.zeros((gpu_size, 768 * SCALE))
 #         torch.save(t, f'/mnt/data/mag/{host_size}h/gpu_feat{host}_{gpu}.pt')
 #         del t
+
+# Signature: preprocess(data_path, host, host_size, p2p_group, p2p_size):
 preprocess('/data/mag', 0, 1, 1, 2)
 # preprocess_unbalance(0, 1, 2, 4)
 # init_feat(0, 1, 2, 4)
