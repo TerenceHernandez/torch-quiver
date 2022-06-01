@@ -17,7 +17,7 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.metrics import Accuracy
+from torchmetrics import Accuracy
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import (LightningDataModule, LightningModule, Trainer,
                                seed_everything)
@@ -260,6 +260,11 @@ class GNN(torch.nn.Module):
 
 def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         train_idx, num_features, num_classes):
+
+    # # Only using 1 host to train
+    # host = 0
+    # host_size = 1
+
     torch.cuda.set_device(rank)
     print(f'{rank} beg')
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -286,6 +291,12 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
                 dropout=args.dropout).to(rank)
     model = DistributedDataParallel(model, device_ids=[rank])
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    # global2host = torch.load(osp.join(ROOT, f'{host_size}h/global2host.pt'))
+    # replicate = torch.load(osp.join(ROOT, f'{host_size}h/replicate{host}.pt'))
+    # info = quiver.feature.PartitionInfo(rank, host=host, hosts=host_size, global2host=global2host,
+    #                                     replicate=replicate)
+
     prev_order = torch.load(
         osp.join('/data/mag/mag240m_kddcup2021', 'processed', 'paper',
                  'prev_order2.pt'))
@@ -296,6 +307,11 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
                              dtype=torch.int64)
     disk_map[prev_order[:2 * gpu_size + cpu_size]] = mem_range
     print(f'{rank} disk map')
+    #
+    # local_order = torch.load(
+    #   osp.join(ROOT, f'1h/local_order{0}.pt'))
+    # quiver_feature.set_local_order(local_order)
+
     quiver_feature.set_mmap_file(
         osp.join('/data/mag/mag240m_kddcup2021', 'processed', 'paper',
                  'node_feat.npy'), disk_map)
