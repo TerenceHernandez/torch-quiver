@@ -17,6 +17,8 @@ from torch_geometric.nn import SAGEConv, Sequential, GCNConv
 from torch_geometric.datasets import Reddit
 from torch_geometric.loader import NeighborSampler
 
+from torch.distributed.pipeline.sync import Pipe
+
 import time
 
 ######################
@@ -87,18 +89,24 @@ class PipelineableSAGEConv(MessagePassing):
 		self.conv.reset_parameters()
 
 	def forward(self, x: Union[Tensor, OptPairTensor], adjs: List[Adj]) -> Tensor:
-		# Calculate the right layers
-		edge_index, _, size = adjs[self.layer]
-		x_target = x[:size[1]]
 
-		# if self.rank == 0:
-		# 	print(f'layer:{self.layer}', x.size(), size)
+		if self.training:
+			# Calculate the right layers
+			edge_index, _, size = adjs[self.layer]
+			x_target = x[:size[1]]
 
-		after_SAGE = self.conv((x, x_target), edge_index)
-		# if self.rank == 0:
-		# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
+			# if self.rank == 0:
+			# 	print(f'layer:{self.layer}', x.size(), size)
 
-		return after_SAGE
+			after_SAGE = self.conv((x, x_target), edge_index)
+			# if self.rank == 0:
+			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
+
+			return after_SAGE
+
+		# else:
+		# 	# Already in the format that we want
+		# 	return self.conv(x, adjs)
 
 	def __repr__(self):
 		return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
@@ -134,6 +142,21 @@ class PipelineableSAGEConv(MessagePassing):
 # 		# 			x = F.relu(x)
 # 		# 			x = F.dropout(x, p=0.5, training=self.training)
 # 		# 	return x.log_softmax(dim=-1)
+
+# def run_inference(num_layers, model, x_all, device, subgraph_loader):
+# 	model.eval()
+#
+# 	pbar = tqdm(total=x_all.size(0) * num_layers)
+# 	pbar.set_description('Evaluating')
+#
+# 	xs = []
+# 	for batch_size, n_id, adj in subgraph_loader:
+# 		edge_index, _, size = adj.to(device)
+# 		x = x_all[n_id].to(device)
+# 		x_target = x[:size[1]]
+# 		x = model((x, x_target), edge_index)
+# 		xs.append(x)
+
 
 def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_features, num_classes):
 	os.environ['MASTER_ADDR'] = 'localhost'
@@ -173,6 +196,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 	if rank == 0:
 		print(model)
 
+	model = Pipe(model, chunks=8, checkpoint='never')
 	model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -201,15 +225,15 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		if rank == 0:
 			print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_start}')
 
-		if rank == 0 and epoch % 10 == 0:  # We evaluate on a single GPU for now
-			model.eval()
-			with torch.no_grad():
-				out = model.module.inference(x, rank, subgraph_loader)
-			res = out.argmax(dim=-1) == y
-			acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
-			acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
-			acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
-			print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+		# if rank == 0 and epoch % 10 == 0:  # We evaluate on a single GPU for now
+		# 	model.eval()
+		# 	with torch.no_grad():
+		# 		out = model.module.inference(x, rank, subgraph_loader)
+		# 	res = out.argmax(dim=-1) == y
+		# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
 		dist.barrier()
 
