@@ -89,10 +89,12 @@ class PipelineableSAGEConv(MessagePassing):
 		edge_index, _, size = adjs[self.layer]
 		x_target = x[:size[:1]]
 
-		print(f'rank:{self.rank}', x.size())
+		if self.layer == 1:
+			print(f'rank:{self.rank}', x.size())
 
 		after_SAGE = self.conv.forward((x, x_target), edge_index)
-		print(f'rank:{self.rank}, after_SAGE:', after_SAGE.size())
+		if self.layer == 1:
+			print(f'rank:{self.rank}, after_SAGE:', after_SAGE.size())
 
 		return after_SAGE
 
