@@ -35,7 +35,7 @@ class SAGE(torch.nn.Module):
         for i, (edge_index, _, size) in enumerate(adjs):
             x_target = x[:size[1]]  # Target nodes are always placed first.
             if self.rank == 0:
-                print(f"i:{i}", x.size())
+                print(f"i:{i}", x.size(), size)
             x = self.convs[i]((x, x_target), edge_index)
             if self.rank == 0:
                 print(f'i:{i}', 'after_SAGE:', x.size())

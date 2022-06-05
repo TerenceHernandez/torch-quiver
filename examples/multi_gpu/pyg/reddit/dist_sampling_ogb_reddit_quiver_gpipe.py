@@ -92,7 +92,7 @@ class PipelineableSAGEConv(MessagePassing):
 		x_target = x[:size[:1]]
 
 		if self.rank == 0:
-			print(f'layer:{self.layer}', x.size())
+			print(f'layer:{self.layer}', x.size(), size)
 
 		after_SAGE = self.conv((x, x_target), edge_index)
 		if self.rank == 0:
