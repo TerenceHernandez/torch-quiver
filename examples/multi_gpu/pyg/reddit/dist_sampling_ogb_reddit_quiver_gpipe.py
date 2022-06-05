@@ -73,8 +73,10 @@ class SAGE(torch.nn.Module):
 
 class PipelineableSAGEConv(MessagePassing):
 	
-	def __init__(self, layer, in_channels, out_channels, *args, **kwargs):
+	def __init__(self, rank, layer, in_channels, out_channels, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+
+		self.rank = rank
 
 		self.conv = SAGEConv(in_channels, out_channels, *args, *kwargs)
 		self.layer = layer
@@ -87,7 +89,7 @@ class PipelineableSAGEConv(MessagePassing):
 		edge_index, _, size = adjs[self.layer]
 		x_target = x[:size[:1]]
 
-		print(x.size())
+		print(f'rank:{self.rank}', x.size())
 
 		return self.conv.forward((x, x_target), edge_index)
 
@@ -148,10 +150,10 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 	hidden_channels = 256
 	model = Sequential(
 		'x, adjs,', [
-			(PipelineableSAGEConv(layer=0, in_channels=num_features, out_channels=hidden_channels), 'x, adjs -> x1a'),
+			(PipelineableSAGEConv(rank=rank, layer=0, in_channels=num_features, out_channels=hidden_channels), 'x, adjs -> x1a'),
 			(ReLU(), 'x1a -> x1b'),
 			(Dropout(p=0.5), 'x1b -> x1c'),
-			(PipelineableSAGEConv(layer=1, in_channels=hidden_channels, out_channels=num_classes), 'x1c, adjs -> x2a'),
+			(PipelineableSAGEConv(rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes), 'x1c, adjs -> x2a'),
 			(LogSoftmax(dim=-1), 'x2a -> x2b')
 		]
 	)
@@ -172,7 +174,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
 			optimizer.zero_grad()
 			out = model(x[n_id].to(rank), adjs)
-			print('OUT', out.size)
+			print('OUT', out.size())
 			print('BATCH_SIZE', batch_size)
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
