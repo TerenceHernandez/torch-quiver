@@ -76,7 +76,7 @@ class PipelineableSAGEConv(MessagePassing):
 	def __init__(self, layer, in_channels, out_channels, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-		self.conv = SAGEConv(*args, *kwargs)
+		self.conv = SAGEConv(in_channels, out_channels, *args, *kwargs)
 		self.layer = layer
 
 	def reset_parameters(self):
