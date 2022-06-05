@@ -34,10 +34,10 @@ class SAGE(torch.nn.Module):
     def forward(self, x, adjs):
         for i, (edge_index, _, size) in enumerate(adjs):
             x_target = x[:size[1]]  # Target nodes are always placed first.
-            if self.rank == 0 and i == self.num_layers - 1:
-                print(f"i:{i}'rank:{self.rank}", x.size())
+            if self.rank == 0:
+                print(f"i:{i}", x.size())
             x = self.convs[i]((x, x_target), edge_index)
-            if self.rank == 0 and i == self.num_layers - 1:
+            if self.rank == 0:
                 print(f'i:{i}', 'after_SAGE:', x.size())
             if i != self.num_layers - 1:
                 x = F.relu(x)
