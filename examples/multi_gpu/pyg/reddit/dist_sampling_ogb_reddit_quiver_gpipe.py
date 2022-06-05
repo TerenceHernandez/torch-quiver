@@ -91,7 +91,10 @@ class PipelineableSAGEConv(MessagePassing):
 
 		print(f'rank:{self.rank}', x.size())
 
-		return self.conv.forward((x, x_target), edge_index)
+		after_SAGE = self.conv.forward((x, x_target), edge_index)
+		print(f'rank:{self.rank}, after_SAGE:', after_SAGE.size())
+
+		return after_SAGE
 
 	def message(self, x_j: Tensor) -> Tensor:
 		return self.conv.message(x_j)
