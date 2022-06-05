@@ -89,7 +89,7 @@ class PipelineableSAGEConv(MessagePassing):
 	def forward(self, x: Union[Tensor, OptPairTensor], adjs: List[Adj]) -> Tensor:
 		# Calculate the right layers
 		edge_index, _, size = adjs[self.layer]
-		x_target = x[:size[:1]]
+		x_target = x[:size[1]]
 
 		if self.rank == 0:
 			print(f'layer:{self.layer}', x.size(), size)
