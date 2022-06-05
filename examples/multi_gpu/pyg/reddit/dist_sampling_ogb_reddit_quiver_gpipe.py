@@ -89,12 +89,12 @@ class PipelineableSAGEConv(MessagePassing):
 		edge_index, _, size = adjs[self.layer]
 		x_target = x[:size[:1]]
 
-		if self.layer == 1:
-			print(f'rank:{self.rank}', x.size())
+		if self.rank == 0:
+			print(f'layer:{self.layer}', x.size())
 
-		after_SAGE = self.conv.forward((x, x_target), edge_index)
-		if self.layer == 1:
-			print(f'rank:{self.rank}, after_SAGE:', after_SAGE.size())
+		after_SAGE = self.conv((x, x_target), edge_index)
+		if self.rank == 0:
+			print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 		return after_SAGE
 
@@ -179,8 +179,9 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
 			optimizer.zero_grad()
 			out = model(x[n_id].to(rank), adjs)
-			print('OUT', out.size())
-			print('BATCH_SIZE', batch_size)
+			if rank == 0:
+				print('OUT', out.size())
+				print('BATCH_SIZE', batch_size)
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()

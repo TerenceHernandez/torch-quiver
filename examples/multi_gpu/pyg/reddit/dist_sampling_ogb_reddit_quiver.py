@@ -34,11 +34,11 @@ class SAGE(torch.nn.Module):
     def forward(self, x, adjs):
         for i, (edge_index, _, size) in enumerate(adjs):
             x_target = x[:size[1]]  # Target nodes are always placed first.
-            if i == self.num_layers - 1:
-                print(f"rank:{self.rank}", x.size())
+            if self.rank == 0 and i == self.num_layers - 1:
+                print(f"i:{i}'rank:{self.rank}", x.size())
             x = self.convs[i]((x, x_target), edge_index)
-            if i == self.num_layers - 1:
-                print(f"rank:{self.rank}", 'after_SAGE:', x.size())
+            if self.rank == 0 and i == self.num_layers - 1:
+                print(f'i:{i}', 'after_SAGE:', x.size())
             if i != self.num_layers - 1:
                 x = F.relu(x)
                 x = F.dropout(x, p=0.5, training=self.training)
@@ -104,8 +104,9 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
             optimizer.zero_grad()
             out = model(x[n_id].to(rank), adjs)
-            print("OUT", out.size())
-            print("BATCH_SIZE", batch_size)
+            if rank == 0:
+                print("OUT", out.size())
+                print("BATCH_SIZE", batch_size)
             loss = F.nll_loss(out, y[n_id[:batch_size]])
             loss.backward()
             optimizer.step()
