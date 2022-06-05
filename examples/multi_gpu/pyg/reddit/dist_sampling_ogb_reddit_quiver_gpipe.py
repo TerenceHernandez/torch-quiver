@@ -87,6 +87,8 @@ class PipelineableSAGEConv(MessagePassing):
 		edge_index, _, size = adjs[self.layer]
 		x_target = x[:size[:1]]
 
+		print(x.size())
+
 		return self.conv.forward((x, x_target), edge_index)
 
 	def message(self, x_j: Tensor) -> Tensor:
