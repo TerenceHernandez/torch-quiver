@@ -201,15 +201,15 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		if rank == 0:
 			print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_start}')
 
-		if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
-			model.eval()
-			with torch.no_grad():
-				out = model.module.inference(x, rank, subgraph_loader)
-			res = out.argmax(dim=-1) == y
-			acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
-			acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
-			acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
-			print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+		# if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
+		# 	model.eval()
+		# 	with torch.no_grad():
+		# 		out = model.module.inference(x, rank, subgraph_loader)
+		# 	res = out.argmax(dim=-1) == y
+		# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
 		dist.barrier()
 
