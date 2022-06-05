@@ -154,6 +154,7 @@ class ModifiedDropOut(_DropoutNd):
 	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
 		return F.dropout(input, self.p, self.training, self.inplace), adj
 
+
 class ModifiedLogMax(Module):
 	__constants__ = ['dim']
 	dim: Optional[int]
@@ -167,8 +168,8 @@ class ModifiedLogMax(Module):
 		if not hasattr(self, 'dim'):
 			self.dim = None
 
-	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
-		return F.log_softmax(input, self.dim, _stacklevel=5), adj
+	def forward(self, input: Tensor, adj: List[Adj]) -> Tensor:
+		return F.log_softmax(input, self.dim, _stacklevel=5)
 
 	def extra_repr(self):
 		return 'dim={dim}'.format(dim=self.dim)
