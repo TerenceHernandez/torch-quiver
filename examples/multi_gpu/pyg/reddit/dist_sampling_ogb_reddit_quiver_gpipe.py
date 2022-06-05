@@ -163,8 +163,10 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		]
 	)
 	model.to(rank)
+	print(model)
 
 	model = DistributedDataParallel(model, device_ids=[rank])
+
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 	# Simulate cases those data can not be fully stored by GPU memory
