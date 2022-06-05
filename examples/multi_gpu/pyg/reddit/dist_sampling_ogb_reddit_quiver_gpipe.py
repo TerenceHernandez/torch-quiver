@@ -18,6 +18,7 @@ from torch_geometric.datasets import Reddit
 from torch_geometric.loader import NeighborSampler
 
 from torch.distributed.pipeline.sync import Pipe
+from torch.distributed.rpc import init_rpc
 
 import time
 
@@ -162,6 +163,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 	os.environ['MASTER_ADDR'] = 'localhost'
 	os.environ['MASTER_PORT'] = '12355'
 	dist.init_process_group('nccl', rank=rank, world_size=world_size)
+	init_rpc('worker', rank=rank, world_size=world_size)
 
 	torch.torch.cuda.set_device(rank)
 
