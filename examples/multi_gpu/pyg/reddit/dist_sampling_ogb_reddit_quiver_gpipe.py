@@ -153,6 +153,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 			(LogSoftmax(dim=-1), 'x2a -> x2b')
 		]
 	)
+	model.to(rank)
 
 	model = DistributedDataParallel(model, device_ids=[rank])
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
