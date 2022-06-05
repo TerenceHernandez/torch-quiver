@@ -91,12 +91,12 @@ class PipelineableSAGEConv(MessagePassing):
 		edge_index, _, size = adjs[self.layer]
 		x_target = x[:size[1]]
 
-		if self.rank == 0:
-			print(f'layer:{self.layer}', x.size(), size)
+		# if self.rank == 0:
+		# 	print(f'layer:{self.layer}', x.size(), size)
 
 		after_SAGE = self.conv((x, x_target), edge_index)
-		if self.rank == 0:
-			print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
+		# if self.rank == 0:
+		# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 		return after_SAGE
 
@@ -189,9 +189,9 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
 			optimizer.zero_grad()
 			out = model(x[n_id].to(rank), adjs)
-			if rank == 0:
-				print('OUT', out.size())
-				print('BATCH_SIZE', batch_size)
+			# if rank == 0:
+			# 	print('OUT', out.size())
+			# 	print('BATCH_SIZE', batch_size)
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()
@@ -201,15 +201,15 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		if rank == 0:
 			print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_start}')
 
-		# if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
-		# 	model.eval()
-		# 	with torch.no_grad():
-		# 		out = model.module.inference(x, rank, subgraph_loader)
-		# 	res = out.argmax(dim=-1) == y
-		# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
-		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
-		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
-		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+		if rank == 0 and epoch % 10 == 0:  # We evaluate on a single GPU for now
+			model.eval()
+			with torch.no_grad():
+				out = model.module.inference(x, rank, subgraph_loader)
+			res = out.argmax(dim=-1) == y
+			acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+			acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+			acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+			print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
 		dist.barrier()
 
