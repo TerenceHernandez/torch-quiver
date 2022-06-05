@@ -75,6 +75,8 @@ class PipelineableSAGEConv(MessagePassing):
 	
 	def __init__(self, rank, layer, in_channels, out_channels, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		self.in_channels = in_channels
+		self.out_channels = out_channels
 
 		self.rank = rank
 
@@ -97,6 +99,10 @@ class PipelineableSAGEConv(MessagePassing):
 			print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 		return after_SAGE
+
+	def __repr__(self):
+		return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
+															 self.out_channels)
 
 	def message(self, x_j: Tensor) -> Tensor:
 		return self.conv.message(x_j)
@@ -163,7 +169,9 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		]
 	)
 	model.to(rank)
-	print(model)
+
+	if rank == 0:
+		print(model)
 
 	model = DistributedDataParallel(model, device_ids=[rank])
 

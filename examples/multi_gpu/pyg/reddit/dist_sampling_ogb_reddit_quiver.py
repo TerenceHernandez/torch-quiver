@@ -89,7 +89,8 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
     torch.manual_seed(12345)
     model = SAGE(rank, num_features, 256, num_classes).to(rank)
-    print(model)
+    if rank ==0:
+        print(model)
     model = DistributedDataParallel(model, device_ids=[rank])
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
