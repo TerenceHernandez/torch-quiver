@@ -1,5 +1,5 @@
 import os
-from typing import Union, List
+from typing import Union, List, Optional
 
 import torch
 from torch import Tensor
@@ -10,10 +10,10 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
-from torch.nn import ReLU, Dropout, LogSoftmax
+from torch.nn import ReLU, Dropout, LogSoftmax, Module, Sequential
 
 from torch_geometric.nn.conv import MessagePassing
-from torch_geometric.nn import SAGEConv, Sequential, GCNConv
+from torch_geometric.nn import SAGEConv, GCNConv
 from torch_geometric.datasets import Reddit
 from torch_geometric.loader import NeighborSampler
 
@@ -75,7 +75,7 @@ class SAGE(torch.nn.Module):
 
 
 class PipelineableSAGEConv(MessagePassing):
-	
+
 	def __init__(self, rank, layer, in_channels, out_channels, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.in_channels = in_channels
@@ -90,7 +90,6 @@ class PipelineableSAGEConv(MessagePassing):
 		self.conv.reset_parameters()
 
 	def forward(self, x: Union[Tensor, OptPairTensor], adjs: List[Adj]) -> Tensor:
-
 		if self.training:
 			# Calculate the right layers
 			edge_index, _, size = adjs[self.layer]
@@ -119,10 +118,60 @@ class PipelineableSAGEConv(MessagePassing):
 	def message_and_aggregate(self, adj_t: SparseTensor, x: OptPairTensor) -> Tensor:
 		return self.conv.message_and_aggregate(adj_t, x)
 
-
 	def __repr__(self):
 		return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
 															 self.out_channels)
+
+
+class ModifiedReLU(Module):
+	def __init__(self, inplace: bool = False):
+		super(ModifiedReLU, self).__init__()
+		self.inplace = inplace
+
+	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
+		return F.relu(input, inplace=self.inplace), adj
+
+
+class _DropoutNd(Module):
+	__constants__ = ['p', 'inplace']
+	p: float
+	inplace: bool
+
+	def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
+		super(_DropoutNd, self).__init__()
+		if p < 0 or p > 1:
+			raise ValueError("dropout probability has to be between 0 and 1, "
+											 "but got {}".format(p))
+		self.p = p
+		self.inplace = inplace
+
+	def extra_repr(self) -> str:
+		return 'p={}, inplace={}'.format(self.p, self.inplace)
+
+
+class ModifiedDropOut(_DropoutNd):
+
+	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
+		return F.dropout(input, self.p, self.training, self.inplace), adj
+
+class ModifiedLogMax(Module):
+	__constants__ = ['dim']
+	dim: Optional[int]
+
+	def __init__(self, dim: Optional[int] = None) -> None:
+		super(ModifiedLogMax, self).__init__()
+		self.dim = dim
+
+	def __setstate__(self, state):
+		self.__dict__.update(state)
+		if not hasattr(self, 'dim'):
+			self.dim = None
+
+	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
+		return F.log_softmax(input, self.dim, _stacklevel=5), adj
+
+	def extra_repr(self):
+		return 'dim={dim}'.format(dim=self.dim)
 
 
 # class SequentialGraphSAGE(torch.nn.Module):
@@ -184,15 +233,25 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
 	# Using Sequential Sage instead
 	hidden_channels = 256
+	# model = Sequential(
+	# 	'x, adjs,', [
+	# 		(
+	# 		PipelineableSAGEConv(rank=rank, layer=0, in_channels=num_features, out_channels=hidden_channels), 'x, adjs -> x'),
+	# 		(ReLU(), 'x -> x'),
+	# 		(Dropout(p=0.5), 'x -> x'),
+	# 		(PipelineableSAGEConv(rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes), 'x, adjs -> x'),
+	# 		(LogSoftmax(dim=-1), 'x -> x')
+	# 	]
+	# )
+
 	model = Sequential(
-		'x, adjs,', [
-			(PipelineableSAGEConv(rank=rank, layer=0, in_channels=num_features, out_channels=hidden_channels), 'x, adjs -> x'),
-			(ReLU(), 'x -> x'),
-			(Dropout(p=0.5), 'x -> x'),
-			(PipelineableSAGEConv(rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes), 'x, adjs -> x'),
-			(LogSoftmax(dim=-1), 'x -> x')
-		]
+		PipelineableSAGEConv(rank=rank, layer=0, in_channels=num_features, out_channels=hidden_channels),
+		ModifiedReLU(),
+		ModifiedDropOut(p=0.5),
+		PipelineableSAGEConv(rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes),
+		ModifiedLogMax(dim=-1)
 	)
+
 	model.to(rank)
 
 	if rank == 0:
