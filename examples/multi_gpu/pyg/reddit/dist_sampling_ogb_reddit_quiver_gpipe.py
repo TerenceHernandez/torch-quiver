@@ -170,6 +170,8 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
 			optimizer.zero_grad()
 			out = model(x[n_id].to(rank), adjs)
+			print('OUT', out.size)
+			print('BATCH_SIZE', batch_size)
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()
