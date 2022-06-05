@@ -19,10 +19,11 @@ import time
 import quiver
 
 class SAGE(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels,
+    def __init__(self,rank, in_channels, hidden_channels, out_channels,
                  num_layers=2):
         super(SAGE, self).__init__()
         self.num_layers = num_layers
+        self.rank = rank
 
         self.convs = torch.nn.ModuleList()
         self.convs.append(SAGEConv(in_channels, hidden_channels))
@@ -33,7 +34,9 @@ class SAGE(torch.nn.Module):
     def forward(self, x, adjs):
         for i, (edge_index, _, size) in enumerate(adjs):
             x_target = x[:size[1]]  # Target nodes are always placed first.
+            print(f"rank:{self.rank}", x.size())
             x = self.convs[i]((x, x_target), edge_index)
+            print(f"rank:{self.rank}", 'after_SAGE:', x.size())
             if i != self.num_layers - 1:
                 x = F.relu(x)
                 x = F.dropout(x, p=0.5, training=self.training)
@@ -83,7 +86,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
                                           shuffle=False, num_workers=6)
 
     torch.manual_seed(12345)
-    model = SAGE(num_features, 256, num_classes).to(rank)
+    model = SAGE(rank, num_features, 256, num_classes).to(rank)
     model = DistributedDataParallel(model, device_ids=[rank])
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
@@ -99,6 +102,8 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 
             optimizer.zero_grad()
             out = model(x[n_id].to(rank), adjs)
+            print("OUT", out.size())
+            print("BATCH_SIZE", batch_size)
             loss = F.nll_loss(out, y[n_id[:batch_size]])
             loss.backward()
             optimizer.step()
