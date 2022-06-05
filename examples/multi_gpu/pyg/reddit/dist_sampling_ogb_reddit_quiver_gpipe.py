@@ -146,14 +146,11 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 	hidden_channels = 256
 	model = Sequential(
 		'x, adjs,', [
-			(PipelineableSAGEConv(layer=0, in_channels=num_features, out_channels=hidden_channels),),
+			(PipelineableSAGEConv(layer=0, in_channels=num_features, out_channels=hidden_channels), 'x, adjs -> x1a'),
 			(ReLU(), 'x1a -> x1b'),
 			(Dropout(p=0.5), 'x1b -> x1c'),
-			(PipelineableSAGEConv(layer=1, in_channels=hidden_channels, out_channels=hidden_channels),),
-			(ReLU(), 'x2a -> x2b'),
-			(Dropout(p=0.5), 'x2b -> x2c'),
-			(PipelineableSAGEConv(layer=2, in_channels=hidden_channels, out_channels=num_classes),),
-			(LogSoftmax(dim=-1))
+			(PipelineableSAGEConv(layer=2, in_channels=hidden_channels, out_channels=num_classes), 'x1c, adjs -> x2a'),
+			(LogSoftmax(dim=-1), 'x2a -> x2b')
 		]
 	)
 
