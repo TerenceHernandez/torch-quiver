@@ -1,5 +1,5 @@
 import os
-from typing import Union
+from typing import Union, List
 
 import torch
 from torch import Tensor
@@ -73,7 +73,7 @@ class SAGE(torch.nn.Module):
 
 class PipelineableSAGEConv(MessagePassing):
 	
-	def __init__(self, layer, *args, **kwargs):
+	def __init__(self, layer, in_channels, out_channels, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		self.conv = SAGEConv(*args, *kwargs)
@@ -82,7 +82,7 @@ class PipelineableSAGEConv(MessagePassing):
 	def reset_parameters(self):
 		self.conv.reset_parameters()
 
-	def forward(self, x: Union[Tensor, OptPairTensor], adjs: list(Adj)) -> Tensor:
+	def forward(self, x: Union[Tensor, OptPairTensor], adjs: List[Adj]) -> Tensor:
 		# Calculate the right layers
 		edge_index, _, size = adjs[self.layer]
 		x_target = x[:size[:1]]
@@ -146,13 +146,13 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 	hidden_channels = 256
 	model = Sequential(
 		'x, adjs,', [
-			(PipelineableSAGEConv(0, in_channels=num_features, out_channels=hidden_channels),),
+			(PipelineableSAGEConv(layer=0, in_channels=num_features, out_channels=hidden_channels),),
 			(ReLU(), 'x1a -> x1b'),
 			(Dropout(p=0.5), 'x1b -> x1c'),
-			(PipelineableSAGEConv(1, in_channels=hidden_channels, out_channels=hidden_channels),),
+			(PipelineableSAGEConv(layer=1, in_channels=hidden_channels, out_channels=hidden_channels),),
 			(ReLU(), 'x2a -> x2b'),
 			(Dropout(p=0.5), 'x2b -> x2c'),
-			(PipelineableSAGEConv(2, in_channels=hidden_channels, out_channels=num_classes),),
+			(PipelineableSAGEConv(layer=2, in_channels=hidden_channels, out_channels=num_classes),),
 			(LogSoftmax(dim=-1))
 		]
 	)
