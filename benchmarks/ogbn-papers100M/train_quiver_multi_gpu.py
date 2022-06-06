@@ -361,8 +361,6 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
 
 if __name__ == '__main__':
-    root = '/data/terencehernandez'
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--hidden_channels', type=int, default=1024)
     parser.add_argument('--batch_size', type=int, default=1024)
@@ -377,6 +375,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default='0')
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--num_gpus', type=int, default=1)
+    parser.add_argument('--root', type=str, default=ROOT)
     args = parser.parse_args()
     args.sizes = [int(i) for i in args.sizes.split('-')]
     print(args)
@@ -384,7 +383,7 @@ if __name__ == '__main__':
     world_size = args.num_gpus
 
     seed_everything(42)
-    dataset = Paper100MDataset(root, 0.15 * min(world_size, 4))
+    dataset = Paper100MDataset(args.root, 0.15 * min(world_size, 4))
 
     ##############################
     # Create Sampler And Feature
