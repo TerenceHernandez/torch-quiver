@@ -166,9 +166,11 @@ def preprocess(host, host_size, p2p_group, p2p_size):
     for h in range(host_size):
         global2host[res[h]] = h
 
-    path = Path(f"{data_path}/{host_size}h/global2host.pt")
+    # Defines the directory to save the pre_process .pt files
+    pre_process_path_string = f"{data_path}/{host_size}h/"
+    path = Path(pre_process_path_string)
     path.mkdir(parents=True, exist_ok=True)
-    torch.save(global2host.cpu(), f'{data_path}/{host_size}h/global2host.pt')
+    torch.save(global2host.cpu(), f'{pre_process_path_string}/global2host.pt')
     t2 = time.time()
     print(f'g2h {t2 - t1}')
 
@@ -187,10 +189,8 @@ def preprocess(host, host_size, p2p_group, p2p_size):
             nz.size(0), cpu_size + gpu_size * p2p_size) - choice.size(0)
         replicate = local_order[:local_replicate_size]
 
-        path = Path(f"{data_path}/{host_size}h/replicate{host}.pt")
-        path.mkdir(parents=True, exist_ok=True)
         torch.save(replicate.cpu(),
-                   f'{data_path}/{host_size}h/replicate{host}.pt')
+                   f'{pre_process_path_string}/replicate{host}.pt')
         t3 = time.time()
         print(f'replicate {t3 - t2}')
         local_all = torch.cat([choice, replicate])
@@ -206,10 +206,8 @@ def preprocess(host, host_size, p2p_group, p2p_size):
         local_gpu_ids = [local_all[r] for r in local_res]
         local_orders = torch.cat((local_gpu_orders, local_cpu_order))
 
-        path = Path(f"{data_path}/{host_size}h/local_order{host}.pt")
-        path.mkdir(parents=True, exist_ok=True)
         torch.save(local_orders.cpu(),
-                   f'{data_path}/{host_size}h/local_order{host}.pt')
+                   f'{pre_process_path_string}/local_order{host}.pt')
         t4 = time.time()
         print(f'order {t4 - t3}')
 
