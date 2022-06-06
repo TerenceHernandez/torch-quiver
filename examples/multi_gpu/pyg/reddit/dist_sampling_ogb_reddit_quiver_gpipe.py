@@ -260,7 +260,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		print(model)
 
 	model = GPipe(model, balance=[1,2,2], chunks=1, checkpoint='never')
-	model = DistributedDataParallel(model, device_ids=[rank])
+	# model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
