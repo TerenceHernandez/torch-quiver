@@ -205,11 +205,11 @@ def preprocess(host, host_size, p2p_group, p2p_size):
         print(f'order {t4 - t3}')
 
 
-# process_topo()
-# process_feature()
-# process_label()
-# sort_feature()
-# process_index()
+process_topo()
+process_feature()
+process_label()
+sort_feature()
+process_index()
 
 # preprocess(0, 3, 1, 2)
 preprocess(0, 1, 1, 3)
