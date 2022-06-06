@@ -287,12 +287,16 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
     #              'node_feat.npy'), disk_map)
     # print(f'{rank} mmap file')
 
+    sample_time = []
+    feat_time = []
+    train_time = []
+
     for epoch in range(1, args.epochs + 1):
         model.train()
 
-        sample_time = []
-        feat_time = []
-        train_time = []
+        epoch_sample_time = []
+        epoch_feat_time = []
+        epoch_train_time = []
 
         epoch_beg = time.time()
         for cnt, seeds in enumerate(train_loader):
@@ -308,9 +312,9 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
             loss.backward()
             optimizer.step()
             t3 = time.time()
-            sample_time.append(t1 - t0)
-            feat_time.append(t2 - t1)
-            train_time.append(t3 - t2)
+            epoch_sample_time.append(t1 - t0)
+            epoch_feat_time.append(t2 - t1)
+            epoch_train_time.append(t3 - t2)
 
         dist.barrier()
 
@@ -333,11 +337,19 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         #     acc3 = int(res[test_idx].sum()) / test_idx.numel()
         #     print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
-        print('Sample times:', sample_time)
-        print('Feature Aggregation times:', feat_time)
-        print('Training times:', train_time)
+        # Average out epoch benchmark times
+        sample_time.append(
+          (sum(epoch_sample_time) / len(epoch_sample_time), min(epoch_sample_time), max(epoch_sample_time)))
+        feat_time.append(
+          (sum(epoch_feat_time) / len(epoch_feat_time), min(epoch_feat_time), max(epoch_feat_time)))
+        train_time.append(
+          (sum(epoch_train_time) / len(epoch_train_time), min(epoch_train_time), max(epoch_train_time)))
 
         dist.barrier()
+
+    print(sample_time)
+    print(feat_time)
+    print(train_time)
 
     dist.destroy_process_group()
 
