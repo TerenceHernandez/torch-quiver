@@ -267,8 +267,8 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 	if rank == 0:
 		print(model)
 
-	# model = GPipe(model, balance=[1,2,2], chunks=1, checkpoint='never')
-	model = Pipe(model, chunks=1, checkpoint='never')
+	model = GPipe(model, balance=[1,2,2], chunks=1, checkpoint='never')
+	# model = Pipe(model, chunks=1, checkpoint='never')
 	# model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -281,7 +281,8 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		epoch_start = time.time()
 		for seeds in train_loader:
 			n_id, batch_size, adjs = quiver_sampler.sample(seeds)
-			adjs = [adj.to(rank) for adj in adjs]
+			# adjs = [adj.to(rank) for adj in adjs]
+			adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
 			out = model((x[n_id].to(rank), adjs))
