@@ -3,6 +3,8 @@ import time
 import glob
 import argparse
 import os.path as osp
+
+import numpy as np
 from torch.utils import data
 from tqdm import tqdm
 
@@ -317,6 +319,7 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
             epoch_train_time.append(t3 - t2)
 
         dist.barrier()
+        # TODO could this be why it takes so long? -> Synchronisation
 
         if rank == 0:
             # remove 10% minium values and 10% maximum values
@@ -324,9 +327,9 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
                 f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_beg}',
             )
             print(
-                f'---- Sampling time: {epoch_sample_time[-1]},'
-                f' Feat Aggregation time: {epoch_feat_time[-1]},'
-                f' Train time: {epoch_train_time[-1]}.'
+                f'---- Sampling time: {np.sum(epoch_sample_time)},'
+                f' Feat Aggregation time: {np.sum(epoch_feat_time)},'
+                f' Train time: {np.sum(epoch_train_time)}.'
             )
 
         # if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
@@ -341,11 +344,11 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
         # Average out epoch benchmark times
         sample_time.append(
-          (sum(epoch_sample_time) / len(epoch_sample_time), min(epoch_sample_time), max(epoch_sample_time)))
+          (np.mean(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
         feat_time.append(
-          (sum(epoch_feat_time) / len(epoch_feat_time), min(epoch_feat_time), max(epoch_feat_time)))
+          (np.mean(epoch_feat_time), np.min(epoch_feat_time), np.max(epoch_feat_time)))
         train_time.append(
-          (sum(epoch_train_time) / len(epoch_train_time), min(epoch_train_time), max(epoch_train_time)))
+          (np.mean(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
 
         dist.barrier()
 
@@ -368,7 +371,7 @@ if __name__ == '__main__':
                         type=str,
                         default='graphsage',
                         choices=['gat', 'graphsage'])
-    parser.add_argument('--sizes', type=str, default='15-10-5')
+    parser.add_argument('--sizes', type=str, default='15-10')
     parser.add_argument('--in-memory', action='store_true')
     parser.add_argument('--device', type=str, default='0')
     parser.add_argument('--evaluate', action='store_true')
