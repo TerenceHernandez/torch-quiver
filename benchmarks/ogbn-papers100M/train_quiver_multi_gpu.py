@@ -34,7 +34,7 @@ import quiver
 from quiver.feature import DeviceConfig, Feature
 import gc
 
-ROOT = '/data-b/terencehernandez'
+ROOT = '/data/terencehernandez'
 CPU_CACHE_GB = 40
 GPU_CACHE_GB = 20
 
@@ -344,11 +344,11 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
         # Average out epoch benchmark times
         sample_time.append(
-          (np.mean(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
+          (np.sum(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
         feat_time.append(
-          (np.mean(epoch_feat_time), np.min(epoch_feat_time), np.max(epoch_feat_time)))
+          (np.sum(epoch_feat_time), np.min(epoch_feat_time), np.max(epoch_feat_time)))
         train_time.append(
-          (np.mean(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
+          (np.sum(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
 
         dist.barrier()
 
@@ -361,7 +361,7 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
 
 if __name__ == '__main__':
-    root = '/data-b/terencehernandez'
+    root = '/data/terencehernandez'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--hidden_channels', type=int, default=1024)
