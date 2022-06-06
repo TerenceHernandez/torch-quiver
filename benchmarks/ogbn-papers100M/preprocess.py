@@ -20,13 +20,13 @@ data_root = f"{data_path}/raw"
 label = np.load(osp.join(data_root, "node-label.npz"))
 data = np.load(osp.join(data_root, "data.npz"))
 path = Path(f"{data_path}/feat")
-path.mkdir(parents=True)
+path.mkdir(parents=True, exist_ok=True)
 path = Path(f"{data_path}/csr")
-path.mkdir(parents=True)
+path.mkdir(parents=True, exist_ok=True)
 path = Path(f"{data_path}/label")
-path.mkdir(parents=True)
+path.mkdir(parents=True, exist_ok=True)
 path = Path(f"{data_path}/index")
-path.mkdir(parents=True)
+path.mkdir(parents=True, exist_ok=True)
 
 SCALE = 1
 GPU_CACHE_GB = 4
