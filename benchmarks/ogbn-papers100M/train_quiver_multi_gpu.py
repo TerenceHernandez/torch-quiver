@@ -299,6 +299,7 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         epoch_sample_time = []
         epoch_feat_time = []
         epoch_train_time = []
+        epoch_times = []
 
         epoch_beg = time.time()
         for cnt, seeds in enumerate(train_loader):
@@ -321,10 +322,11 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         dist.barrier()
         # TODO could this be why it takes so long? -> Synchronisation
 
+        epoch_time = time.time() - epoch_beg
         if rank == 0:
             # remove 10% minium values and 10% maximum values
             print(
-                f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_beg}',
+                f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {epoch_time}',
             )
             print(
                 f'---- Sampling time: {np.sum(epoch_sample_time)},'
@@ -350,12 +352,15 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         train_time.append(
           (np.sum(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
 
+        epoch_times.append(epoch_time)
+
         dist.barrier()
 
     if rank == 0:
         print("Sample time statistics:", sample_time)
         print("Feature aggregation time statistics:", feat_time)
         print("Trainiing time statistics:", train_time)
+        print('Total Epoch times:', epoch_times)
 
     dist.destroy_process_group()
 
