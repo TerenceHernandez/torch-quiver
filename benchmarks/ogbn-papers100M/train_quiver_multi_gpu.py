@@ -352,9 +352,10 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
         dist.barrier()
 
-    print(sample_time)
-    print(feat_time)
-    print(train_time)
+    if rank == 0:
+        print("Sample time statistics:", sample_time)
+        print("Feature aggregation time statistics:", feat_time)
+        print("Trainiing time statistics:", train_time)
 
     dist.destroy_process_group()
 
