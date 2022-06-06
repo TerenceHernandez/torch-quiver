@@ -14,16 +14,18 @@ from pathlib import Path
 import quiver
 from .old_partition  import partition_with_replication, partition_without_replication, select_nodes
 
-data_root = "/data-b/terencehernandez/ogbn_papers100M/raw/"
+root = "/data-b/terencehernandez"
+data_path = f"{root}/ogbn_papers100M"
+data_root = f"{data_path}/raw"
 label = np.load(osp.join(data_root, "node-label.npz"))
 data = np.load(osp.join(data_root, "data.npz"))
-path = Path('/data/papers/ogbn_papers100M/feat')
+path = Path(f"{data_path}/feat")
 path.mkdir(parents=True)
-path = Path('/data/papers/ogbn_papers100M/csr')
+path = Path(f"{data_path}/csr")
 path.mkdir(parents=True)
-path = Path('/data/papers/ogbn_papers100M/label')
+path = Path(f"{data_path}/label")
 path.mkdir(parents=True)
-path = Path('/data/papers/ogbn_papers100M/index')
+path = Path(f"{data_path}/index")
 path.mkdir(parents=True)
 
 SCALE = 1
@@ -58,8 +60,8 @@ def process_topo():
 
     print("LOG>>> Begin Save")
 
-    torch.save(indptr, "/data/papers/ogbn_papers100M/csr/indptr.pt")
-    torch.save(indices, "/data/papers/ogbn_papers100M/csr/indices.pt")
+    torch.save(indptr, f"{data_path}/csr/indptr.pt")
+    torch.save(indices, f"{data_path}/csr/indices.pt")
 
     csr_mat = get_csr_from_coo(edge_index, True)
     indptr_reverse = csr_mat.indptr
@@ -68,9 +70,9 @@ def process_topo():
     indices_reverse = torch.from_numpy(indices_reverse).type(torch.long)
 
     torch.save(indptr_reverse,
-               "/data/papers/ogbn_papers100M/csr/indptr_reverse.pt")
+               f"{data_path}/csr/indptr_reverse.pt")
     torch.save(indices_reverse,
-               "/data/papers/ogbn_papers100M/csr/indices_reverse.pt")
+               f"{data_path}/csr/indices_reverse.pt")
 
 
 def process_feature():
@@ -80,20 +82,20 @@ def process_feature():
     nid_feat = data["node_feat"]
     tensor = torch.from_numpy(nid_feat).type(torch.float)
     print("LOG>>> Begin Process")
-    torch.save(tensor, "/data/papers/ogbn_papers100M/feat/feature.pt")
+    torch.save(tensor, f"{data_path}/feat/feature.pt")
 
 
 def process_label():
     print("LOG>>> Load Finished")
     node_label = label["node_label"]
     tensor = torch.from_numpy(node_label).type(torch.long)
-    torch.save(tensor, "/data/papers/ogbn_papers100M/label/label.pt")
+    torch.save(tensor, f"{data_path}/label/label.pt")
 
 
 def sort_feature():
     NUM_ELEMENT = 111059956
-    indptr = torch.load("/data/papers/ogbn_papers100M/csr/indptr_reverse.pt")
-    feature = torch.load("/data/papers/ogbn_papers100M/feat/feature.pt")
+    indptr = torch.load(f"{data_path}/csr/indptr_reverse.pt")
+    feature = torch.load(f"{data_path}/feat/feature.pt")
     prev = torch.LongTensor(indptr[:-1])
     sub = torch.LongTensor(indptr[1:])
     deg = sub - prev
@@ -101,20 +103,19 @@ def sort_feature():
     total_num = NUM_ELEMENT
     total_range = torch.arange(total_num, dtype=torch.long)
     feature = feature[prev_order]
-    torch.save(feature, "/data/papers/ogbn_papers100M/feat/sort_feature.pt")
-    torch.save(prev_order, "/data/papers/ogbn_papers100M/feat/prev_order.pt")
+    torch.save(feature, f"{data_path}/feat/sort_feature.pt")
+    torch.save(prev_order, f"{data_path}/feat/prev_order.pt")
 
 
 def process_index():
-    data = genfromtxt('/data/papers/ogbn_papers100M/split/time/train.csv',
+    data = genfromtxt(f"{data_path}/split/time/train.csv",
                       delimiter='\n')
     data = data.astype(np.long)
     data = torch.from_numpy(data)
-    torch.save(data, "/data/papers/ogbn_papers100M/index/train_idx.pt")
+    torch.save(data, f"{data_path}/index/train_idx.pt")
 
 
 def preprocess(host, host_size, p2p_group, p2p_size):
-    root = '/data/papers'
     data_dir = osp.join(root, 'ogbn_papers100M')
     indptr_root = osp.join(data_dir, 'csr', 'indptr.pt')
     indices_root = osp.join(data_dir, 'csr', 'indices.pt')
