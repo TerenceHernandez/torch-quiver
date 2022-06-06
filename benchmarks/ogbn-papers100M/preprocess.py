@@ -12,19 +12,19 @@ from scipy.sparse import csr_matrix
 from pathlib import Path
 
 import quiver
-from quiver.partition import partition_with_replication, partition_without_replication, select_nodes
+from .old_partition  import partition_with_replication, partition_without_replication, select_nodes
 
-# data_root = "/data/papers/ogbn_papers100M/raw/"
-# label = np.load(osp.join(data_root, "node-label.npz"))
-# data = np.load(osp.join(data_root, "data.npz"))
-# path = Path('/data/papers/ogbn_papers100M/feat')
-# path.mkdir(parents=True)
-# path = Path('/data/papers/ogbn_papers100M/csr')
-# path.mkdir(parents=True)
-# path = Path('/data/papers/ogbn_papers100M/label')
-# path.mkdir(parents=True)
-# path = Path('/data/papers/ogbn_papers100M/index')
-# path.mkdir(parents=True)
+data_root = "/data-b/terencehernandez/ogbn_papers100M/raw/"
+label = np.load(osp.join(data_root, "node-label.npz"))
+data = np.load(osp.join(data_root, "data.npz"))
+path = Path('/data/papers/ogbn_papers100M/feat')
+path.mkdir(parents=True)
+path = Path('/data/papers/ogbn_papers100M/csr')
+path.mkdir(parents=True)
+path = Path('/data/papers/ogbn_papers100M/label')
+path.mkdir(parents=True)
+path = Path('/data/papers/ogbn_papers100M/index')
+path.mkdir(parents=True)
 
 SCALE = 1
 GPU_CACHE_GB = 4
@@ -210,4 +210,5 @@ def preprocess(host, host_size, p2p_group, p2p_size):
 # sort_feature()
 # process_index()
 
-preprocess(0, 3, 1, 2)
+# preprocess(0, 3, 1, 2)
+preprocess(0, 1, 1, 3)
