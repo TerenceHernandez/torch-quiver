@@ -324,7 +324,9 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
                 f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_beg}',
             )
             print(
-                f'---- Sampling time: {sample_time[-1]}, Feat Aggregation time: {feat_time[-1]}, Train time: {train_time[-1]}.'
+                f'---- Sampling time: {epoch_sample_time[-1]},'
+                f' Feat Aggregation time: {epoch_feat_time[-1]},'
+                f' Train time: {epoch_train_time[-1]}.'
             )
 
         # if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
