@@ -383,8 +383,9 @@ if __name__ == '__main__':
     del dataset.feature
 
     print('Let\'s use', world_size, 'GPUs!')
+
     mp.spawn(run,
-             args=(world_size, quiver_sampler, quiver_feature, dataset.label,
+             args=(args, world_size, quiver_sampler, quiver_feature, dataset.label,
                    dataset.train_idx, 128, 172),
              nprocs=world_size,
              join=True)
