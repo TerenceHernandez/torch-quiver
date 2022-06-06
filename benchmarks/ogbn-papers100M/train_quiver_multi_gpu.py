@@ -333,6 +333,10 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         #     acc3 = int(res[test_idx].sum()) / test_idx.numel()
         #     print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
+        print('Sample times:', sample_time)
+        print('Feature Aggregation times:', feat_time)
+        print('Training times:', train_time)
+
         dist.barrier()
 
     dist.destroy_process_group()
