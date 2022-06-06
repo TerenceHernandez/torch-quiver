@@ -350,7 +350,7 @@ if __name__ == '__main__':
                         type=str,
                         default='graphsage',
                         choices=['gat', 'graphsage'])
-    parser.add_argument('--sizes', type=str, default='25-15')
+    parser.add_argument('--sizes', type=str, default='15-10-5')
     parser.add_argument('--in-memory', action='store_true')
     parser.add_argument('--device', type=str, default='0')
     parser.add_argument('--evaluate', action='store_true')
@@ -369,7 +369,7 @@ if __name__ == '__main__':
     ##############################
     csr_topo = quiver.CSRTopo(indptr=dataset.indptr, indices=dataset.indices)
     csr_topo.feature_order = dataset.new_order
-    quiver_sampler = quiver.pyg.GraphSageSampler(csr_topo, [15, 10, 5],
+    quiver_sampler = quiver.pyg.GraphSageSampler(csr_topo, args.sizes,
                                                  0,
                                                  mode="UVA")
     quiver_feature = quiver.Feature(rank=0,
