@@ -90,8 +90,10 @@ class PipelineableSAGEConv(MessagePassing):
 	def reset_parameters(self):
 		self.conv.reset_parameters()
 
-	def forward(self, x: Union[Tensor, OptPairTensor], adjs: List[Adj]) -> Tensor:
+	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
 		if self.training:
+			x, adjs = x_adjs
+
 			# Calculate the right layers
 			edge_index, _, size = adjs[self.layer]
 			x_target = x[:size[1]]
@@ -103,7 +105,7 @@ class PipelineableSAGEConv(MessagePassing):
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
-			return after_SAGE
+			return after_SAGE, x_adjs
 
 		# else:
 		# 	# Already in the format that we want
@@ -129,8 +131,10 @@ class ModifiedReLU(Module):
 		super(ModifiedReLU, self).__init__()
 		self.inplace = inplace
 
-	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
-		return F.relu(input, inplace=self.inplace), adj
+	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
+		x, adjs = x_adjs
+
+		return F.relu(x, inplace=self.inplace), adjs
 
 
 class _DropoutNd(Module):
@@ -152,8 +156,10 @@ class _DropoutNd(Module):
 
 class ModifiedDropOut(_DropoutNd):
 
-	def forward(self, input: Tensor, adj: List[Adj]) -> (Tensor, List[Adj]):
-		return F.dropout(input, self.p, self.training, self.inplace), adj
+	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
+		x, adjs = x_adjs
+
+		return F.dropout(x, self.p, self.training, self.inplace), adjs
 
 
 class ModifiedLogMax(Module):
@@ -169,8 +175,10 @@ class ModifiedLogMax(Module):
 		if not hasattr(self, 'dim'):
 			self.dim = None
 
-	def forward(self, input: Tensor, adj: List[Adj]) -> Tensor:
-		return F.log_softmax(input, self.dim, _stacklevel=5)
+	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> Tensor:
+		x, adjs = x_adjs
+
+		return F.log_softmax(x, self.dim, _stacklevel=5)
 
 	def extra_repr(self):
 		return 'dim={dim}'.format(dim=self.dim)
@@ -275,7 +283,7 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 			adjs = [adj.to(rank) for adj in adjs]
 
 			optimizer.zero_grad()
-			out = model(x[n_id].to(rank), adjs)
+			out = model((x[n_id].to(rank), adjs))
 			# if rank == 0:
 			# 	print('OUT', out.size())
 			# 	print('BATCH_SIZE', batch_size)
