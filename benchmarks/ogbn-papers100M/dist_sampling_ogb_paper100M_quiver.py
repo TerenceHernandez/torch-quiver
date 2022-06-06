@@ -13,7 +13,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch_geometric.nn import SAGEConv
 from torch_geometric.datasets import Reddit
 from torch_geometric.loader import NeighborSampler
-from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
+from ogb.nodeproppred import PygNodePropPredDataset, Evaluator, NodePropPredDataset
 import time
 import torch_quiver as qv
 
@@ -129,7 +129,7 @@ def run(rank, world_size, quiver_sampler, quiver_feature, y, train_idx,
                                                pin_memory=True,
                                                shuffle=True)
 
-    model = SAGE(num_features, 256, num_classes, num_layers=3).to(rank)
+    model = SAGE(num_features, hidden_channels=256, out_channels=num_classes, num_layers=3).to(rank)
     model = DistributedDataParallel(model, device_ids=[rank])
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 

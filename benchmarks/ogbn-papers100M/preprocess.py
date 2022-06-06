@@ -1,5 +1,4 @@
 import torch
-import torch_quiver as qv
 
 import random
 import time
@@ -11,10 +10,17 @@ from numpy import genfromtxt
 from scipy.sparse import csr_matrix
 from pathlib import Path
 
+from sklearn.metrics import roc_auc_score, average_precision_score
+from ogb.nodeproppred import PygNodePropPredDataset
+
 import quiver
 from .old_partition  import partition_with_replication, partition_without_replication, select_nodes
 
-root = "/data-b/terencehernandez"
+# Download the data beforehand
+root = "/data/terencehernandez"
+dataset = PygNodePropPredDataset(name='ogbn-papers100M', root=root)
+
+# Make directories used by training script
 data_path = f"{root}/ogbn_papers100M"
 data_root = f"{data_path}/raw"
 label = np.load(osp.join(data_root, "node-label.npz"))
@@ -212,11 +218,11 @@ def preprocess(host, host_size, p2p_group, p2p_size):
         print(f'order {t4 - t3}')
 
 
-# process_topo()
-# process_feature()
-# process_label()
-# sort_feature()
-# process_index()
+process_topo()
+process_feature()
+process_label()
+sort_feature()
+process_index()
 
 # preprocess(0, 3, 1, 2)
 preprocess(0, 1, 1, 3)
