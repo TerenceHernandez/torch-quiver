@@ -292,6 +292,7 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
     sample_time = []
     feat_time = []
     train_time = []
+    epoch_times = []
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -299,7 +300,6 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         epoch_sample_time = []
         epoch_feat_time = []
         epoch_train_time = []
-        epoch_times = []
 
         epoch_beg = time.time()
         for cnt, seeds in enumerate(train_loader):
