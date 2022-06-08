@@ -4,6 +4,7 @@ from typing import Union, List, Optional
 import torch
 from torch import Tensor
 from torch.nn import Module, Sequential
+from torch.nn.parallel import DistributedDataParallel
 from torch_geometric.typing import OptPairTensor, Adj
 from torch_sparse import SparseTensor
 from torchgpipe import GPipe
@@ -218,7 +219,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	if rank == 0:
 		print(model)
 
-	model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	# model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
