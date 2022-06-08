@@ -272,7 +272,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 if __name__ == '__main__':
 	dataset = Reddit('/data/Reddit')
 	data = dataset[0]
-	world_size = 3  # torch.cuda.device_count()
+	world_size = 1  # torch.cuda.device_count()
 	print('Let\'s use', world_size, 'GPUs!')
 	data_split = (data.train_mask, data.val_mask, data.test_mask)
 	mp.spawn(run,
