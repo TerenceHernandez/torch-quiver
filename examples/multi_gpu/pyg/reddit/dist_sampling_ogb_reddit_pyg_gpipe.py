@@ -74,7 +74,7 @@ class PipelineableSAGEConv(MessagePassing):
 
 		self.rank = rank
 
-		self.conv = SAGEConv(in_channels, out_channels, *args, *kwargs)
+		self.conv = SAGEConv(in_channels, out_channels, *args, *kwargs).to(rank)
 		self.layer = layer
 
 	def reset_parameters(self):
