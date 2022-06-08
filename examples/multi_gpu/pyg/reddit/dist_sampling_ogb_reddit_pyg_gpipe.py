@@ -84,13 +84,14 @@ class PipelineableSAGEConv(MessagePassing):
 		if self.training:
 			# x, edge_index = x_adjs
 
-			x, edj0, edj1 = x_edgs
+			x, edj0, edj1, size0, size1 = x_edgs
 
 			# Calculate the right layers
 			# edge_index, _, size = adjs[self.layer]
 			edge_index = edj0 if self.layer == 1 else edj1
+			size = size0 if self.layer == 1 else size1
 
-			x_target = x[:edge_index[1].size(0)]
+			x_target = x[:size]
 
 			if self.rank == 0:
 				print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
@@ -127,9 +128,9 @@ class ModifiedReLU(Module):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		x, edj0, edj1 = x_edgs
+		x, edj0, edj1, size0, size1 = x_edgs
 
-		return F.relu(x, inplace=self.inplace), edj0, edj1
+		return F.relu(x, inplace=self.inplace), edj0, edj1, size0, size1
 
 
 class _DropoutNd(Module):
@@ -153,9 +154,9 @@ class ModifiedDropOut(_DropoutNd):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		x, edj0, edj1 = x_edgs
+		x, edj0, edj1, size0, size1 = x_edgs
 
-		return F.dropout(x, self.p, self.training, self.inplace), edj0, edj1
+		return F.dropout(x, self.p, self.training, self.inplace), edj0, edj1, size0, size1
 
 
 class ModifiedLogMax(Module):
@@ -173,7 +174,7 @@ class ModifiedLogMax(Module):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		x, edj0, edj1 = x_edgs
+		x, edj0, edj1, size0, size1 = x_edgs
 
 		return F.log_softmax(x, self.dim, _stacklevel=5)
 
@@ -234,10 +235,13 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			adjs = [adj.edge_index for adj in adjs]
 			adjs = [adj.to(rank) for adj in adjs]
 
+			sizes = [adj.sizes[1] for adj in adjs]
+			sizes = [size.to(rank) for size in sizes]
+
 			# adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
-			out = model((x[n_id].to(rank), adjs[0], adjs[1]))
+			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()
