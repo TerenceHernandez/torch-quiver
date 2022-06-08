@@ -232,7 +232,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				for adj in adjs:
 					print(adj.size[1])
 
-			sizes = [adj.sizes[1] for adj in adjs]
+			sizes = [adj.size[1] for adj in adjs]
 			sizes = [size.to(rank) for size in sizes]
 
 			adjs = [adj.edge_index for adj in adjs]
