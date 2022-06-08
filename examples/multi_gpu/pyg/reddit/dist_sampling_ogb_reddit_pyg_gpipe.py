@@ -197,7 +197,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	train_loader = NeighborSampler(edge_index, node_idx=train_idx,
 																 sizes=[25, 10], batch_size=1024,
 																 shuffle=True, persistent_workers=True,
-																 num_workers=os.cpu_count() // world_size)
+																 num_workers=24 // world_size)
 
 	if rank == 0:
 		subgraph_loader = NeighborSampler(edge_index, node_idx=None,
@@ -219,8 +219,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	if rank == 0:
 		print(model)
 
-	# model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
-	model = DistributedDataParallel(model, device_ids=[rank])
+	model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	# model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
