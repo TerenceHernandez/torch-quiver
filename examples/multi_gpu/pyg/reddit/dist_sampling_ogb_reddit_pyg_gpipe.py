@@ -96,8 +96,8 @@ class PipelineableSAGEConv(MessagePassing):
 			# 	print(f'layer:{self.layer}', x.size(), size)
 
 			after_SAGE = self.conv((x, x_target), edge_index)
-			# if self.rank == 0:
-			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
+			if self.rank == 0:
+				print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 			return after_SAGE, edj0, edj1
 
