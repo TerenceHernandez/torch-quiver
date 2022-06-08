@@ -227,7 +227,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
-			out = model((x[n_id].to(rank), adjs[0], adjs[1], adjs[2]))
+			out = model((x[n_id].to(rank), adjs[0], adjs[1]))
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()
