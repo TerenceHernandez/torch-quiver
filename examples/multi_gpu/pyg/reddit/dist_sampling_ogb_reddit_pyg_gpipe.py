@@ -93,12 +93,12 @@ class PipelineableSAGEConv(MessagePassing):
 
 			x_target = x[:size]
 
-			if self.rank == 0:
-				print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
+			# if self.rank == 0:
+			# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
 
 			after_SAGE = self.conv((x, x_target), edge_index)
-			if self.rank == 0:
-				print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
+			# if self.rank == 0:
+			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 			return after_SAGE, edj0, edj1, size0, size1
 
@@ -245,21 +245,21 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 			optimizer.zero_grad()
 			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
-
-			print("YSIZE",y.size())
-			print("N_ID SIZE",n_id.size())
-			print("Batch_size", batch_size)
-			print("YSIZE",y.size())
-			print("N_id",n_id[:batch_size].size())
-
-			print("MAX", torch.max(n_id[:batch_size]))
+			#
+			# print("YSIZE",y.size())
+			# print("N_ID SIZE",n_id.size())
+			# print("Batch_size", batch_size)
+			# print("YSIZE",y.size())
+			# print("N_id",n_id[:batch_size].size())
+			#
+			# print("MAX", torch.max(n_id[:batch_size]))
 
 			# node_ids = n_id
 			# filter_max = node_ids < y.size(0)
 			# node_ids = node_ids[torch.nonzero(filter_max)][:batch_size]
 			# print("Max 2", torch.max(node_ids))
 
-			print("OUT", out.size(), y[n_id[:batch_size]].size())
+			# print("OUT", out.size(), y[n_id[:batch_size]].size())
 			# loss = F.nll_loss(out, y[node_ids])
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 
@@ -289,7 +289,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 if __name__ == '__main__':
 	dataset = Reddit('/data/Reddit')
 	data = dataset[0]
-	world_size = 1  # torch.cuda.device_count()
+	world_size = 3  # torch.cuda.device_count()
 	print('Let\'s use', world_size, 'GPUs!')
 	data_split = (data.train_mask, data.val_mask, data.test_mask)
 	mp.spawn(run,
