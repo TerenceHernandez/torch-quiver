@@ -3,6 +3,7 @@ from typing import Union, List, Optional
 
 import torch
 from torch import Tensor
+from torch.distributed.pipeline.sync import Pipe
 from torch.nn import Module, Sequential
 from torch.nn.parallel import DistributedDataParallel
 from torch_geometric.typing import OptPairTensor, Adj
@@ -12,6 +13,9 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import torch.multiprocessing as mp
 import torch.distributed as dist
+
+from torch.distributed.rpc import init_rpc
+
 
 from torch_geometric.nn import SAGEConv, MessagePassing
 from torch_geometric.datasets import Reddit
@@ -186,9 +190,9 @@ class ModifiedLogMax(Module):
 def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classes):
 	os.environ['MASTER_ADDR'] = 'localhost'
 	os.environ['MASTER_PORT'] = '12355'
-	dist.init_process_group('nccl', rank=rank, world_size=world_size)
-
+	# dist.init_process_group('nccl', rank=rank, world_size=world_size)
 	torch.torch.cuda.set_device(rank)
+	init_rpc(f'worker{rank}', rank=rank, world_size=world_size)
 
 	train_mask, val_mask, test_mask = data_split
 	train_idx = train_mask.nonzero(as_tuple=False).view(-1)
@@ -219,7 +223,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	if rank == 0:
 		print(model)
 
-	model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	# model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	model = Pipe(chunks=1, checkpoint='never')
 	# model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
