@@ -92,8 +92,8 @@ class PipelineableSAGEConv(MessagePassing):
 
 			x_target = x[:edge_index[1].size(0)]
 
-			# if self.rank == 0:
-			# 	print(f'layer:{self.layer}', x.size(), size)
+			if self.rank == 0:
+				print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
 
 			after_SAGE = self.conv((x, x_target), edge_index)
 			if self.rank == 0:
@@ -226,6 +226,11 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		model.train()
 		epoch_start = time.time()
 		for batch_size, n_id, adjs in train_loader:
+
+			if rank == 0:
+				for adj in adjs:
+					print(adj.size[1])
+
 			adjs = [adj.edge_index for adj in adjs]
 			adjs = [adj.to(rank) for adj in adjs]
 
