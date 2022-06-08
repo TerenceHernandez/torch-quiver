@@ -80,12 +80,14 @@ class PipelineableSAGEConv(MessagePassing):
 	def reset_parameters(self):
 		self.conv.reset_parameters()
 
-	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
+	def forward(self, x, edj0, edj1):
 		if self.training:
-			x, edge_index = x_adjs
+			# x, edge_index = x_adjs
 
 			# Calculate the right layers
 			# edge_index, _, size = adjs[self.layer]
+			edge_index = edj0 if self.layer == 1 else edj1
+
 			x_target = x[:edge_index[1].size(0)]
 
 			# if self.rank == 0:
@@ -95,7 +97,7 @@ class PipelineableSAGEConv(MessagePassing):
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
-			return after_SAGE, x_adjs
+			return after_SAGE, edj0, edj1
 
 	# else:
 	# 	# Already in the format that we want
@@ -121,10 +123,10 @@ class ModifiedReLU(Module):
 		super(ModifiedReLU, self).__init__()
 		self.inplace = inplace
 
-	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
-		x, adjs = x_adjs
+	def forward(self, x, edj0, edj1):
+		# x, adjs = x_adjs
 
-		return F.relu(x, inplace=self.inplace), adjs
+		return F.relu(x, inplace=self.inplace), edj0, edj1
 
 
 class _DropoutNd(Module):
@@ -146,10 +148,10 @@ class _DropoutNd(Module):
 
 class ModifiedDropOut(_DropoutNd):
 
-	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
-		x, adjs = x_adjs
+	def forward(self, x, edj0, edj1):
+		# x, adjs = x_adjs
 
-		return F.dropout(x, self.p, self.training, self.inplace), adjs
+		return F.dropout(x, self.p, self.training, self.inplace), edj0, edj1
 
 
 class ModifiedLogMax(Module):
@@ -165,8 +167,8 @@ class ModifiedLogMax(Module):
 		if not hasattr(self, 'dim'):
 			self.dim = None
 
-	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> Tensor:
-		x, adjs = x_adjs
+	def forward(self, x, edj0, edj1):
+		# x, adjs = x_adjs
 
 		return F.log_softmax(x, self.dim, _stacklevel=5)
 
@@ -184,7 +186,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	train_idx = train_idx.split(train_idx.size(0) // world_size)[rank]
 
 	train_loader = NeighborSampler(edge_index, node_idx=train_idx,
-																 sizes=[20, 20], batch_size=1024,
+																 sizes=[25, 10], batch_size=1024,
 																 shuffle=True, persistent_workers=True,
 																 num_workers=os.cpu_count() // world_size)
 
@@ -219,15 +221,13 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		model.train()
 		epoch_start = time.time()
 		for batch_size, n_id, adjs in train_loader:
-			# adjs = [adj.to(rank) for adj in adjs]
-			print("Type:", type(adjs[0]))
 			adjs = [adj.edge_index for adj in adjs]
-			print("Type2:", type(adjs[0]))
+			adjs = [adj.to(rank) for adj in adjs]
 
-			adjs = torch.stack(adjs).to(rank)
+			# adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
-			out = model(x[n_id].to(rank), adjs)
+			out = model((x[n_id].to(rank), adjs[0], adjs[1], adjs[2]))
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()
