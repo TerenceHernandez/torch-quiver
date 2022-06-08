@@ -218,7 +218,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	if rank == 0:
 		print(model)
 
-	# model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
@@ -230,13 +230,13 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		epoch_start = time.time()
 		for batch_size, n_id, adjs in train_loader:
 
-			if rank == 0:
-				for adj in adjs:
-					print(adj.size[1])
+			# if rank == 0:
+				# for adj in adjs:
+				# 	print(adj.size[1])
 
 			sizes = [adj.size[1] for adj in adjs]
 			sizes = [torch.tensor([size]).to(rank) for size in sizes]
-			print(sizes)
+			# print(sizes)
 
 			adjs = [adj.edge_index for adj in adjs]
 			adjs = [adj.to(rank) for adj in adjs]
