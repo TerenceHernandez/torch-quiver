@@ -251,6 +251,9 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			print("Batch_size", batch_size)
 			print("YSIZE",y.size())
 			print("N_id",n_id[:batch_size].size())
+
+			print("MAX", torch.max(n_id[:batch_size]))
+
 			print("OUT", out.size(), y[n_id[:batch_size]].size())
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
