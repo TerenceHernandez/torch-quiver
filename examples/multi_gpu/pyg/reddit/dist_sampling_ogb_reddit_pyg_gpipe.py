@@ -11,7 +11,6 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import torch.multiprocessing as mp
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
 
 from torch_geometric.nn import SAGEConv, MessagePassing
 from torch_geometric.datasets import Reddit
@@ -205,8 +204,6 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		ModifiedLogMax(dim=-1)
 	)
 	model.to(rank)
-
-	model = DistributedDataParallel(model, device_ids=[rank])
 
 	if rank == 0:
 		print(model)
