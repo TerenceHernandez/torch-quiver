@@ -245,6 +245,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 			optimizer.zero_grad()
 			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
+			print("OUT", out.size(), y[n_id[:batch_size]].size())
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 			loss.backward()
 			optimizer.step()
