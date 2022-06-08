@@ -187,6 +187,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	os.environ['MASTER_PORT'] = '12355'
 	dist.init_process_group('nccl', rank=rank, world_size=world_size)
 
+	torch.torch.cuda.set_device(rank)
+
 	train_mask, val_mask, test_mask = data_split
 	train_idx = train_mask.nonzero(as_tuple=False).view(-1)
 	train_idx = train_idx.split(train_idx.size(0) // world_size)[rank]
