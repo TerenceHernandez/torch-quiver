@@ -37,6 +37,8 @@ import gc
 ROOT = '/data/terencehernandez'
 CPU_CACHE_GB = 40
 GPU_CACHE_GB = 20
+FEATURE_DIM = 128
+SCALE = 1
 
 
 class Batch(NamedTuple):
@@ -249,8 +251,8 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
     torch.manual_seed(123 + 45 * rank)
     #
-    # gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (768 * 4)
-    # cpu_size = CPU_CACHE_GB * 1024 * 1024 * 1024 // (768 * 4)
+    # gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)
+    # cpu_size = CPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)
 
     train_loader = torch.utils.data.DataLoader(train_idx,
                                                batch_size=1024,

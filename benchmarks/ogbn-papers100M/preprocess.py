@@ -37,6 +37,7 @@ path.mkdir(parents=True, exist_ok=True)
 SCALE = 1
 GPU_CACHE_GB = 4
 CPU_CACHE_GB = 18
+FEATURE_DIM = 128
 
 
 def get_csr_from_coo(edge_index, reverse=False):
@@ -161,8 +162,8 @@ def preprocess(host, host_size, p2p_group, p2p_size):
         for i in range(p2p_size):
             probs_sum += p2p_probs[i]
         host_probs_sum[h] = probs_sum
-    gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (128 * SCALE * 4)
-    cpu_size = CPU_CACHE_GB * 1024 * 1024 * 1024 // (128 * SCALE * 4)
+    gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)
+    cpu_size = CPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * SCALE * 4)
     _, nz = select_nodes(0, host_probs_sum, None)
     print(f'access node {nz.size(0)}')
     res = partition_without_replication(0, host_probs_sum, nz.squeeze())
