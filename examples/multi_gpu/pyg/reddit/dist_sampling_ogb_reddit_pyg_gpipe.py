@@ -254,8 +254,14 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 			print("MAX", torch.max(n_id[:batch_size]))
 
-			print("OUT", out.size(), y[n_id[:batch_size]].size())
-			loss = F.nll_loss(out, y[n_id[:batch_size]])
+			node_ids = n_id
+			filter_max = node_ids < y.size(0)
+			node_ids = node_ids[torch.nonzero(filter_max)][:batch_size]
+
+			# print("OUT", out.size(), y[n_id[:batch_size]].size())
+			loss = F.nll_loss(out, y[node_ids])
+
+			y[[1,1927, 12938]]
 			loss.backward()
 			optimizer.step()
 
