@@ -88,8 +88,8 @@ class PipelineableSAGEConv(MessagePassing):
 
 			# Calculate the right layers
 			# edge_index, _, size = adjs[self.layer]
-			edge_index = edj0 if self.layer == 1 else edj1
-			size = size0 if self.layer == 1 else size1
+			edge_index = edj0 if self.layer == 0 else edj1
+			size = size0 if self.layer == 0 else size1
 
 			x_target = x[:size]
 
