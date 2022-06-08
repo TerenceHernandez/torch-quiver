@@ -80,9 +80,11 @@ class PipelineableSAGEConv(MessagePassing):
 	def reset_parameters(self):
 		self.conv.reset_parameters()
 
-	def forward(self, x, edj0, edj1):
+	def forward(self, x_edgs):
 		if self.training:
 			# x, edge_index = x_adjs
+
+			x, edj0, edj1 = x_edgs
 
 			# Calculate the right layers
 			# edge_index, _, size = adjs[self.layer]
@@ -123,8 +125,9 @@ class ModifiedReLU(Module):
 		super(ModifiedReLU, self).__init__()
 		self.inplace = inplace
 
-	def forward(self, x, edj0, edj1):
+	def forward(self, x_edgs):
 		# x, adjs = x_adjs
+		x, edj0, edj1 = x_edgs
 
 		return F.relu(x, inplace=self.inplace), edj0, edj1
 
@@ -148,8 +151,9 @@ class _DropoutNd(Module):
 
 class ModifiedDropOut(_DropoutNd):
 
-	def forward(self, x, edj0, edj1):
+	def forward(self, x_edgs):
 		# x, adjs = x_adjs
+		x, edj0, edj1 = x_edgs
 
 		return F.dropout(x, self.p, self.training, self.inplace), edj0, edj1
 
@@ -167,8 +171,9 @@ class ModifiedLogMax(Module):
 		if not hasattr(self, 'dim'):
 			self.dim = None
 
-	def forward(self, x, edj0, edj1):
+	def forward(self, x_edgs):
 		# x, adjs = x_adjs
+		x, edj0, edj1 = x_edgs
 
 		return F.log_softmax(x, self.dim, _stacklevel=5)
 
