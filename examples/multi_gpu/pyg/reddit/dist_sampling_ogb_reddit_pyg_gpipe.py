@@ -261,7 +261,6 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# print("OUT", out.size(), y[n_id[:batch_size]].size())
 			loss = F.nll_loss(out, y[node_ids])
 
-			y[[1,1927, 12938]]
 			loss.backward()
 			optimizer.step()
 
