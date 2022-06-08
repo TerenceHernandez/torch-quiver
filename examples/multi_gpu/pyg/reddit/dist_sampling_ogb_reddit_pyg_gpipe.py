@@ -184,7 +184,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	train_idx = train_idx.split(train_idx.size(0) // world_size)[rank]
 
 	train_loader = NeighborSampler(edge_index, node_idx=train_idx,
-																 sizes=[25, 10], batch_size=1024,
+																 sizes=[20, 20], batch_size=1024,
 																 shuffle=True, persistent_workers=True,
 																 num_workers=os.cpu_count() // world_size)
 
