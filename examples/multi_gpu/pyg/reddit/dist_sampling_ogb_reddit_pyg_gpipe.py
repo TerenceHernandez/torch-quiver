@@ -82,11 +82,11 @@ class PipelineableSAGEConv(MessagePassing):
 
 	def forward(self, x_adjs: (Union[Tensor, OptPairTensor], List[Adj])) -> (Union[Tensor, OptPairTensor], List[Adj]):
 		if self.training:
-			x, adjs = x_adjs
+			x, edge_index = x_adjs
 
 			# Calculate the right layers
-			edge_index, _, size = adjs[self.layer]
-			x_target = x[:size[1]]
+			# edge_index, _, size = adjs[self.layer]
+			x_target = x[:edge_index[1].size(0)]
 
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}', x.size(), size)
@@ -221,6 +221,9 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		for batch_size, n_id, adjs in train_loader:
 			# adjs = [adj.to(rank) for adj in adjs]
 			print("Type:", type(adjs[0]))
+			adjs = [adj.edge_index for adj in adjs]
+			print("Type2:", type(adjs[0]))
+
 			adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
