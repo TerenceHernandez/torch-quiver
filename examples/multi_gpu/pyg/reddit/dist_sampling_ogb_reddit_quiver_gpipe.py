@@ -282,8 +282,8 @@ def run(rank, world_size, data_split, edge_index, x, quiver_sampler, y, num_feat
 		for seeds in train_loader:
 			n_id, batch_size, adjs = quiver_sampler.sample(seeds)
 			# adjs = [adj.to(rank) for adj in adjs]
-			adjs = torch.stack(adjs).to(rank)
 			print(type(adjs[0]))
+			adjs = torch.stack(adjs).to(rank)
 			# TODO: adjs no longer List[Adj] but Tensor[Adj], Convert Adj to Tensor to allow for GPipe!
 
 			optimizer.zero_grad()
