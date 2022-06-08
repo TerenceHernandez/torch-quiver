@@ -100,7 +100,7 @@ class PipelineableSAGEConv(MessagePassing):
 			if self.rank == 0:
 				print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
-			return after_SAGE, edj0, edj1
+			return after_SAGE, edj0, edj1, size0, size1
 
 	# else:
 	# 	# Already in the format that we want
