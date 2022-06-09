@@ -1,3 +1,4 @@
+import argparse
 from ogb.lsc import MAG240MDataset
 from scipy.sparse import csr
 import torch
@@ -285,6 +286,15 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
 #         del t
 
 # Signature: preprocess(data_path, host, host_size, p2p_group, p2p_size):
-preprocess('/data/mag', 0, 1, 1, 2)
+# preprocess('/data/mag', 0, 1, 1, 2)
 # preprocess_unbalance(0, 1, 2, 4)
 # init_feat(0, 1, 2, 4)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--root', type=str, default='/data/mag')
+    parser.add_argument('--host-size', type=int, default=1024)
+    parser.add_argument('--p2p-group-amount', type=int, default=1024)
+    parser.add_argument('--p2p-size', type=int, default=1024)
+    args = parser.parse_args()
+    preprocess(args.root, 0, host_size=args.host_size, p2p_group=args.p2p_group_amount, p2p_size=args.p2p_size)
