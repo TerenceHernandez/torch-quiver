@@ -294,8 +294,8 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', type=str, default='/data/mag')
-    parser.add_argument('--host-size', type=int, default=1024)
-    parser.add_argument('--p2p-group-amount', type=int, default=1024)
-    parser.add_argument('--p2p-size', type=int, default=1024)
+    parser.add_argument('--host-size', type=int, default=2)
+    parser.add_argument('--p2p-group-amount', type=int, default=1)
+    parser.add_argument('--p2p-size', type=int, default=2)
     args = parser.parse_args()
     preprocess(args.root, 0, host_size=args.host_size, p2p_group=args.p2p_group_amount, p2p_size=args.p2p_size)
