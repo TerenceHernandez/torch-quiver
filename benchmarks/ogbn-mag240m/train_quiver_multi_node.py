@@ -37,7 +37,7 @@ from quiver.feature import DeviceConfig, Feature, DistFeature
 import gc
 
 ROOT = '/data/mag'
-CPU_CACHE_GB = 64
+CPU_CACHE_GB = 120
 GPU_CACHE_GB = 8
 FEATURE_DIM = 768
 NUM_CLASS = 153
@@ -141,12 +141,12 @@ class MAG240M(LightningDataModule):
         self.y = torch.from_numpy(dataset.all_paper_label)
 
         self.indptr = torch.load(
-            osp.join(ROOT,
-                     "/home/ubuntu/temp/mag/mag240m_kddcup2021/csr/indptr.pt")
+            osp.join(self.data_dir,
+                     "mag240m_kddcup2021/csr/indptr.pt")
         ).share_memory_()
         self.indices = torch.load(
             osp.join(
-                ROOT, "/home/ubuntu/temp/mag/mag240m_kddcup2021/csr/indices.pt"
+                self.data_dir, "mag240m_kddcup2021/csr/indices.pt"
             )).share_memory_()
         print(f'Done! [{time.perf_counter() - t:.2f}s]')
 
