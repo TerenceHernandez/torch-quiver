@@ -151,10 +151,11 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
         global2host[res[h]] = h
 
     # Save the allocation as a PTH file
-    if not osp.exists(f'{dataset.dir}/{host_size}h/'):
-        os.makedirs(f'{data_path}/{host_size}h/')
+    allocation_dir = f'{data_path}/mag_mappings'
+    if not osp.exists(f'{allocation_dir}/{host_size}h/'):
+        os.makedirs(f'{allocation_dir}/{host_size}h/')
     torch.save(global2host.cpu(),
-               osp.join(data_path, f'{host_size}h/global2host.pt')) # global2host is mapping of (nodes, host_num)
+               osp.join(allocation_dir, f'{host_size}h/global2host.pt')) # global2host is mapping of (nodes, host_num)
     t2 = time.time()
     print(f'g2h {t2 - t1}')
 
@@ -173,7 +174,7 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
             nz.size(0), cpu_size + gpu_size * p2p_size) - choice.size(0)  # replicate up to limit of host+local_gpu_capacity
         replicate = local_order[:local_replicate_size] # indication that the most frequently updated data should be replicated
         torch.save(replicate.cpu(),
-                   osp.join(data_path, f'{host_size}h/replicate{host}.pt'))
+                   osp.join(allocation_dir, f'{host_size}h/replicate{host}.pt'))
         t3 = time.time()
         print(f'replicate {t3 - t2}')
 
@@ -191,7 +192,7 @@ def preprocess(data_path, host, host_size, p2p_group, p2p_size):
         local_gpu_ids = [local_all[r] for r in local_res]
         local_orders = torch.cat((local_gpu_orders, local_cpu_order))
         torch.save(local_orders.cpu(),
-                   osp.join(data_path, f'{host_size}h/local_order{host}.pt'))
+                   osp.join(allocation_dir, f'{host_size}h/local_order{host}.pt'))
         t4 = time.time()
         print(f'order {t4 - t3}')
 
