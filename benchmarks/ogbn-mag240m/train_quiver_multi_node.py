@@ -295,6 +295,7 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     # os.environ['MASTER_ADDR'] = MASTER_ADDR
     # os.environ['MASTER_PORT'] = '12355'
     dist.init_process_group('nccl', rank=global_rank, world_size=global_size)
+    print(f'{rank} finished initialising nccl')
 
     train_idx = train_idx.split(train_idx.size(0) // global_size)[global_rank]
 
@@ -318,6 +319,7 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     allocation_dir = f'{args.root}/mag_mappings'
+    print(f'{rank} allocating mappings')
     global2host = torch.load(osp.join(allocation_dir, f'{host_size}h/global2host.pt'))
     replicate = torch.load(osp.join(allocation_dir, f'{host_size}h/replicate{host}.pt'))
     info = quiver.feature.PartitionInfo(rank, host, host_size, global2host,
