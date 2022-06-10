@@ -108,10 +108,13 @@ class MAG240M(LightningDataModule):
         self.train_idx = torch.from_numpy(dataset.get_idx_split('train'))
         self.train_idx = self.train_idx
         self.train_idx.share_memory_()
+        print("Train idx loaded")
         self.val_idx = torch.from_numpy(dataset.get_idx_split('valid'))
         self.val_idx.share_memory_()
+        print("Val idx loaded")
         self.test_idx = torch.from_numpy(dataset.get_idx_split('test-dev'))
         self.test_idx.share_memory_()
+        print("Test idx loaded")
 
         if self.in_memory:
             self.x = torch.from_numpy(dataset.all_paper_feat).share_memory_()
