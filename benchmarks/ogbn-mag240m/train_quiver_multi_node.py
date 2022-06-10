@@ -381,11 +381,6 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
             epoch_train_time.append(t3 - t2)
             torch.cuda.empty_cache()
 
-            if global_rank == 0 and cnt % 20 == 10:
-                print(f'sample {epoch_sample_time[-1]}')
-                print(f'feat {epoch_feat_time[-1]}')
-                print(f'train {epoch_train_time[-1]}')
-
         dist.barrier()
 
         epoch_time = time.time() - epoch_beg
