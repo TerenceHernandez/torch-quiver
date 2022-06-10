@@ -6,8 +6,11 @@ import os.path as osp
 from torch.utils import data
 from tqdm import tqdm
 import socket
+import pandas as pd
 
 from typing import Optional, List, NamedTuple
+
+import numpy as np
 
 import torch
 from torch import Tensor
@@ -18,7 +21,7 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.metrics import Accuracy
+from torchmetrics import Accuracy
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import (LightningDataModule, LightningModule, Trainer,
                                seed_everything)
@@ -333,13 +336,19 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     #     osp.join('/data/mag/mag240m_kddcup2021', 'processed', 'paper',
     #              'node_feat.npy'), disk_map)
     # print(f'{rank} mmap file')
+
+    sample_time = []
+    feat_time = []
+    train_time = []
+    epoch_times = []
+
     torch.cuda.empty_cache()
     for epoch in range(1, args.epochs + 1):
         model.train()
 
-        sample_time = []
-        feat_time = []
-        train_time = []
+        epoch_sample_time = []
+        epoch_feat_time = []
+        epoch_train_time = []
 
         epoch_beg = time.time()
         for cnt, seeds in enumerate(train_loader):
@@ -355,9 +364,9 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
             loss.backward()
             optimizer.step()
             t3 = time.time()
-            sample_time.append(t1 - t0)
-            feat_time.append(t2 - t1)
-            train_time.append(t3 - t2)
+            epoch_sample_time.append(t1 - t0)
+            epoch_feat_time.append(t2 - t1)
+            epoch_train_time.append(t3 - t2)
             torch.cuda.empty_cache()
 
             if rank == 0 and cnt % 20 == 10:
@@ -367,10 +376,11 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
 
         dist.barrier()
 
+        epoch_time = time.time() - epoch_beg
         if rank == 0:
             # remove 10% minium values and 10% maximum values
             print(
-                f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {time.time() - epoch_beg}'
+                f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {epoch_time}'
             )
 
         # if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
@@ -383,9 +393,35 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
         #     acc3 = int(res[test_idx].sum()) / test_idx.numel()
         #     print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
+        if rank == 0:
+            # Average out epoch benchmark times
+            sample_time.append(
+                (np.sum(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
+            feat_time.append(
+                (np.sum(epoch_feat_time), np.min(epoch_feat_time), np.max(epoch_feat_time)))
+            train_time.append(
+                (np.sum(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
+
+            epoch_times.append(epoch_time)
+
         dist.barrier()
 
+    if rank == 0:
+        print("Sample time statistics:", sample_time)
+        _save_as_csv(sample_time, stat_name='sampling', colums=['total_across_epoch', 'min', 'max'])
+        print("Feature aggregation time statistics:", feat_time)
+        _save_as_csv(feat_time, stat_name='features', colums=['total_across_epoch', 'min', 'max'])
+        print("Trainiing time statistics:", train_time)
+        _save_as_csv(train_time, stat_name='training', colums=['total_across_epoch', 'min', 'max'])
+        print('Total Epoch times:', epoch_times)
+        _save_as_csv(epoch_times, stat_name='epoch')
+
     dist.destroy_process_group()
+
+
+def _save_as_csv(stats, stat_name, colums=None):
+    sampling_stats = pd.DataFrame(stats, columns=colums)
+    sampling_stats.to_csv(f'multi_node_data/{local_size}_gpu_{stat_name}.csv')
 
 
 def _get_local_address():
