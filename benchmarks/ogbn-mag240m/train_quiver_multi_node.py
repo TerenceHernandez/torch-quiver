@@ -5,6 +5,7 @@ import argparse
 import os.path as osp
 from torch.utils import data
 from tqdm import tqdm
+import socket
 
 from typing import Optional, List, NamedTuple
 
@@ -37,8 +38,7 @@ CPU_CACHE_GB = 200
 GPU_CACHE_GB = 8
 FEATURE_DIM = 768
 NUM_CLASS = 153
-LOCAL_ADDR = '104.171.200.118'
-MASTER_ADDR = '104.171.200.118'
+MASTER_ADDR = '155.198.152.18'
 MASTER_PORT = 19216
 
 
@@ -388,6 +388,12 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     dist.destroy_process_group()
 
 
+def _get_local_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    return s.getsockname()[0]
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--hidden_channels', type=int, default=1024)
@@ -405,21 +411,25 @@ if __name__ == '__main__':
     parser.add_argument('--host_size', type=int, default=1)
     parser.add_argument('--local_size', type=int, default=8)
     parser.add_argument('--host', type=int, default=0)
+    parser.add_argument('--root', type=str, default=ROOT)
     args = parser.parse_args()
     args.sizes = [int(i) for i in args.sizes.split('-')]
     print(args)
+
+    local_addr = _get_local_address()
+    print(local_addr)
 
     seed_everything(42)
     host_size = args.host_size
     local_size = args.local_size
     host = args.host
-    datamodule = MAG240M(ROOT, args.batch_size, args.sizes, host, host_size,
+    datamodule = MAG240M(f'{args.root}/mag_mappings', args.batch_size, args.sizes, host, host_size,
                          local_size, args.in_memory)
 
     if not args.evaluate:
         store = dist.TCPStore(MASTER_ADDR, MASTER_PORT, host_size,
-                              MASTER_ADDR == LOCAL_ADDR)
-        if MASTER_ADDR == LOCAL_ADDR:
+                              MASTER_ADDR == local_addr)
+        if MASTER_ADDR == local_addr:
             id = quiver.comm.getNcclId()
             store.set("id", id)
         else:
