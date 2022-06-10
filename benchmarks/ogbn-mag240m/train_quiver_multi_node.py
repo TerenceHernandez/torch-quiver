@@ -129,6 +129,8 @@ class MAG240M(LightningDataModule):
             for i in range(self.local_size):
                 gpu_part = torch.zeros((gpu_size, FEATURE_DIM))
                 gpu_parts.append(gpu_part)
+
+            print('Initialising Quiver feature')
             feat = Feature(0, list(range(self.local_size)), 0,
                            'p2p_clique_replicate')
             device_config = DeviceConfig(gpu_parts, cpu_part)
