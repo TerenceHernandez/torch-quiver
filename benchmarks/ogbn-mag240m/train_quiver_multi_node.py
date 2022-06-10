@@ -245,6 +245,7 @@ class GNN(torch.nn.Module):
             print("X_SIZE", x.size())
             print("X_TARGET_SIZE", x_target.size())
             print("EDGE_INDEX", edge_index.size())
+            print(self.convs[i])
             x = self.convs[i]((x, x_target), edge_index)
             if self.model == 'gat':
                 x = x + self.skips[i](x_target)
