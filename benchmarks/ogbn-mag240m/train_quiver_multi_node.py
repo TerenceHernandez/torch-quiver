@@ -128,6 +128,7 @@ class MAG240M(LightningDataModule):
             gpu_parts = []
             for i in range(self.local_size):
                 gpu_part = torch.zeros((gpu_size, FEATURE_DIM))
+                print("Loaded:", i)
                 gpu_parts.append(gpu_part)
 
             print('Initialising Quiver feature')
