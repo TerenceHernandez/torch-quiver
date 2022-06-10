@@ -381,10 +381,10 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
             epoch_train_time.append(t3 - t2)
             torch.cuda.empty_cache()
 
-            if rank == 0 and cnt % 20 == 10:
-                print(f'sample {sample_time[-1]}')
-                print(f'feat {feat_time[-1]}')
-                print(f'train {train_time[-1]}')
+            if global_rank == 0 and cnt % 20 == 10:
+                print(f'sample {epoch_sample_time[-1]}')
+                print(f'feat {epoch_feat_time[-1]}')
+                print(f'train {epoch_train_time[-1]}')
 
         dist.barrier()
 
@@ -405,7 +405,7 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
         #     acc3 = int(res[test_idx].sum()) / test_idx.numel()
         #     print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
-        if rank == 0:
+        if global_rank == 0:
             # Average out epoch benchmark times
             sample_time.append(
                 (np.sum(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
