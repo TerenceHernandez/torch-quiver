@@ -316,7 +316,7 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
                                                shuffle=True)
 
     model = GNN(args.model,
-                num_features * host_size,
+                num_features,
                 num_classes,
                 args.hidden_channels,
                 num_layers=len(args.sizes),
