@@ -294,11 +294,13 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     global_size = host_size * local_size
     # os.environ['MASTER_ADDR'] = MASTER_ADDR
     # os.environ['MASTER_PORT'] = '12355'
+    print(f'global_rank:{global_rank}, world_size:{global_size}')
     dist.init_process_group('nccl', rank=global_rank, world_size=global_size)
     print(f'{rank} finished initialising nccl')
 
     train_idx = train_idx.split(train_idx.size(0) // global_size)[global_rank]
 
+    print(f'{rank} finished splitting train_idx')
     torch.manual_seed(123 + 45 * rank)
 
     gpu_size = GPU_CACHE_GB * 1024 * 1024 * 1024 // (FEATURE_DIM * 4)
