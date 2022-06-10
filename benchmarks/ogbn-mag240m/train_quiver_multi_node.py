@@ -37,7 +37,7 @@ from quiver.feature import DeviceConfig, Feature, DistFeature
 import gc
 
 ROOT = '/data/mag'
-CPU_CACHE_GB = 100
+CPU_CACHE_GB = 64
 GPU_CACHE_GB = 8
 FEATURE_DIM = 768
 NUM_CLASS = 153
