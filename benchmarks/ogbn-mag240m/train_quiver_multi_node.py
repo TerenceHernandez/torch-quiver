@@ -310,8 +310,10 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
                 dropout=args.dropout).to(rank)
     model = DistributedDataParallel(model, device_ids=[rank])
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    global2host = torch.load(osp.join(ROOT, f'{host_size}h/global2host.pt'))
-    replicate = torch.load(osp.join(ROOT, f'{host_size}h/replicate{host}.pt'))
+
+    allocation_dir = f'{args.root}/mag_mappings'
+    global2host = torch.load(osp.join(allocation_dir, f'{host_size}h/global2host.pt'))
+    replicate = torch.load(osp.join(allocation_dir, f'{host_size}h/replicate{host}.pt'))
     info = quiver.feature.PartitionInfo(rank, host, host_size, global2host,
                                         replicate)
     comm = quiver.comm.NcclComm(global_rank, global_size, id, host_size,
@@ -319,7 +321,7 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     print('comm')
     quiver_feature.lazy_init_from_ipc_handle()
     local_order = torch.load(
-        osp.join(ROOT, f'{host_size}h/local_order{host}.pt'))
+        osp.join(allocation_dir, f'{host_size}h/local_order{host}.pt'))
     quiver_feature.set_local_order(local_order)
     dist_feature = DistFeature(quiver_feature, info, comm)
     # prev_order = torch.load(
@@ -459,7 +461,7 @@ if __name__ == '__main__':
     host_size = args.host_size
     local_size = args.local_size
     host = args.host
-    datamodule = MAG240M(f'{args.root}/mag_mappings', args.batch_size, args.sizes, host, host_size,
+    datamodule = MAG240M(args.root, args.batch_size, args.sizes, host, host_size,
                          local_size, args.in_memory)
 
     if not args.evaluate:
