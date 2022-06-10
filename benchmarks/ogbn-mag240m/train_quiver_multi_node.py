@@ -291,9 +291,9 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     torch.cuda.set_device(rank)
     print(f'{rank} beg')
     global_rank = rank + host * local_size
-    global_size = host_size * local_size
-    os.environ['MASTER_ADDR'] = MASTER_ADDR
-    os.environ['MASTER_PORT'] = '12355'
+    # global_size = host_size * local_size
+    # os.environ['MASTER_ADDR'] = MASTER_ADDR
+    # os.environ['MASTER_PORT'] = '12355'
     dist.init_process_group('nccl', rank=global_rank, world_size=global_size)
 
     train_idx = train_idx.split(train_idx.size(0) // global_size)[global_rank]
@@ -469,6 +469,11 @@ if __name__ == '__main__':
     host = args.host
     datamodule = MAG240M(args.root, args.batch_size, args.sizes, host, host_size,
                          local_size, args.in_memory)
+
+    global_size = host_size * local_size
+    os.environ['MASTER_ADDR'] = MASTER_ADDR
+    os.environ['MASTER_PORT'] = '12355'
+    os.environ['WORLD_SIZE'] = str(global_size)
 
     if not args.evaluate:
         store = dist.TCPStore(MASTER_ADDR, MASTER_PORT, host_size,
