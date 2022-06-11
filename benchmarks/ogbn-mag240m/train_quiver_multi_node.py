@@ -11,6 +11,7 @@ import pandas as pd
 from typing import Optional, List, NamedTuple
 
 import numpy as np
+from pathlib import Path
 
 import torch
 from torch import Tensor
@@ -427,7 +428,10 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
 
 def _save_as_csv(local_size, stats, stat_name, colums=None):
     sampling_stats = pd.DataFrame(stats, columns=colums)
-    sampling_stats.to_csv(f'multi_node_data/{local_size}_gpu_{stat_name}.csv')
+    path = Path('multi_node_data')
+    path.mkdir(parents=True, exist_ok=True)
+
+    sampling_stats.to_csv(f'{str(path)}{local_size}_gpu_{stat_name}.csv')
 
 
 def _get_local_address():
