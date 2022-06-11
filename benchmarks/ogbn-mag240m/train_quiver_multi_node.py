@@ -355,78 +355,78 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     epoch_times = []
 
     torch.cuda.empty_cache()
-    for epoch in range(1, args.epochs + 1):
-        model.train()
-
-        epoch_sample_time = []
-        epoch_feat_time = []
-        epoch_train_time = []
-
-        epoch_beg = time.time()
-        for cnt, seeds in enumerate(train_loader):
-            t0 = time.time()
-            n_id, batch_size, adjs = quiver_sampler.sample(seeds)
-            t1 = time.time()
-            x = dist_feature[n_id]
-            y = label[n_id[:batch_size]].to(torch.long)
-            batch = Batch(x=x, y=y, adjs_t=adjs).to(rank)
-            t2 = time.time()
-            optimizer.zero_grad()
-            loss = model(batch, 0)
-            loss.backward()
-            optimizer.step()
-            t3 = time.time()
-            epoch_sample_time.append(t1 - t0)
-            epoch_feat_time.append(t2 - t1)
-            epoch_train_time.append(t3 - t2)
-            torch.cuda.empty_cache()
-
-        dist.barrier()
-
-        epoch_time = time.time() - epoch_beg
-        if rank == 0:
-            # remove 10% minium values and 10% maximum values
-            print(
-                f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {epoch_time}'
-            )
-
-        # if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
-        #     model.eval()
-        #     with torch.no_grad():
-        #         out = model.module.inference(quiver_feature, rank, subgraph_loader)
-        #     res = out.argmax(dim=-1) == y.cpu()
-        #     acc1 = int(res[train_idx].sum()) / train_idx.numel()
-        #     acc2 = int(res[val_idx].sum()) / val_idx.numel()
-        #     acc3 = int(res[test_idx].sum()) / test_idx.numel()
-        #     print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
-
-        if global_rank == 0:
-            # Average out epoch benchmark times
-            sample_time.append(
-                (np.sum(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
-            feat_time.append(
-                (np.sum(epoch_feat_time), np.min(epoch_feat_time), np.max(epoch_feat_time)))
-            train_time.append(
-                (np.sum(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
-
-            epoch_times.append(epoch_time)
+    # for epoch in range(1, args.epochs + 1):
+    #     model.train()
+    #
+    #     epoch_sample_time = []
+    #     epoch_feat_time = []
+    #     epoch_train_time = []
+    #
+    #     epoch_beg = time.time()
+    #     for cnt, seeds in enumerate(train_loader):
+    #         t0 = time.time()
+    #         n_id, batch_size, adjs = quiver_sampler.sample(seeds)
+    #         t1 = time.time()
+    #         x = dist_feature[n_id]
+    #         y = label[n_id[:batch_size]].to(torch.long)
+    #         batch = Batch(x=x, y=y, adjs_t=adjs).to(rank)
+    #         t2 = time.time()
+    #         optimizer.zero_grad()
+    #         loss = model(batch, 0)
+    #         loss.backward()
+    #         optimizer.step()
+    #         t3 = time.time()
+    #         epoch_sample_time.append(t1 - t0)
+    #         epoch_feat_time.append(t2 - t1)
+    #         epoch_train_time.append(t3 - t2)
+    #         torch.cuda.empty_cache()
+    #
+    #     dist.barrier()
+    #
+    #     epoch_time = time.time() - epoch_beg
+    #     if rank == 0:
+    #         # remove 10% minium values and 10% maximum values
+    #         print(
+    #             f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Epoch Time: {epoch_time}'
+    #         )
+    #
+    #     # if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
+    #     #     model.eval()
+    #     #     with torch.no_grad():
+    #     #         out = model.module.inference(quiver_feature, rank, subgraph_loader)
+    #     #     res = out.argmax(dim=-1) == y.cpu()
+    #     #     acc1 = int(res[train_idx].sum()) / train_idx.numel()
+    #     #     acc2 = int(res[val_idx].sum()) / val_idx.numel()
+    #     #     acc3 = int(res[test_idx].sum()) / test_idx.numel()
+    #     #     print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+    #
+    #     if global_rank == 0:
+    #         # Average out epoch benchmark times
+    #         sample_time.append(
+    #             (np.sum(epoch_sample_time), np.min(epoch_sample_time), np.max(epoch_sample_time)))
+    #         feat_time.append(
+    #             (np.sum(epoch_feat_time), np.min(epoch_feat_time), np.max(epoch_feat_time)))
+    #         train_time.append(
+    #             (np.sum(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
+    #
+    #         epoch_times.append(epoch_time)
 
         dist.barrier()
 
     if rank == 0:
         print("Sample time statistics:", sample_time)
-        _save_as_csv(sample_time, stat_name='sampling', colums=['total_across_epoch', 'min', 'max'])
+        _save_as_csv(local_size, sample_time, stat_name='sampling', colums=['total_across_epoch', 'min', 'max'])
         print("Feature aggregation time statistics:", feat_time)
-        _save_as_csv(feat_time, stat_name='features', colums=['total_across_epoch', 'min', 'max'])
+        _save_as_csv(local_size, feat_time, stat_name='features', colums=['total_across_epoch', 'min', 'max'])
         print("Trainiing time statistics:", train_time)
-        _save_as_csv(train_time, stat_name='training', colums=['total_across_epoch', 'min', 'max'])
+        _save_as_csv(local_size, train_time, stat_name='training', colums=['total_across_epoch', 'min', 'max'])
         print('Total Epoch times:', epoch_times)
-        _save_as_csv(epoch_times, stat_name='epoch')
+        _save_as_csv(local_size, epoch_times, stat_name='epoch')
 
     dist.destroy_process_group()
 
 
-def _save_as_csv(stats, stat_name, colums=None):
+def _save_as_csv(local_size, stats, stat_name, colums=None):
     sampling_stats = pd.DataFrame(stats, columns=colums)
     sampling_stats.to_csv(f'multi_node_data/{local_size}_gpu_{stat_name}.csv')
 
