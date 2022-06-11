@@ -383,7 +383,7 @@ def end_end_stats():
 	plt.show()
 
 
-def percentage_time_spent():
+def percentage_time_spent(add_synchronisation=False):
 
 	for i in range(1, 4):
 		operations = []
@@ -392,6 +392,13 @@ def percentage_time_spent():
 			df = read_csv(f'single_node_data/{i}_gpu_{label}.csv', usecols=['total_across_epoch'])
 			operations.append(df['total_across_epoch'].sum())
 			label_vals.append(keyword_map[label].capitalize())
+
+		if add_synchronisation:
+			total_epoch_time = read_csv(f'single_node_data/{i}_gpu_epoch.csv')
+
+			sync_time = total_epoch_time.sum() - sum(operations)
+			operations.append(sync_time[0])
+			label_vals.append('GPU synchronisation')
 
 		max_operation = max(operations)
 		explode = [0.1 if operation == max_operation else 0.02 for operation in operations]
@@ -419,3 +426,4 @@ if __name__ == '__main__':
 	end_end_stats()
 
 	percentage_time_spent()
+	percentage_time_spent(add_synchronisation=True)
