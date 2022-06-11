@@ -355,7 +355,8 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     epoch_times = []
 
     torch.cuda.empty_cache()
-    # for epoch in range(1, args.epochs + 1):
+    for epoch in range(1, args.epochs + 1):
+        dist.barrier()
     #     model.train()
     #
     #     epoch_sample_time = []
@@ -410,8 +411,6 @@ def run(rank, args, quiver_sampler, quiver_feature, label, train_idx,
     #             (np.sum(epoch_train_time), np.min(epoch_train_time), np.max(epoch_train_time)))
     #
     #         epoch_times.append(epoch_time)
-
-        dist.barrier()
 
     if rank == 0:
         print("Sample time statistics:", sample_time)
