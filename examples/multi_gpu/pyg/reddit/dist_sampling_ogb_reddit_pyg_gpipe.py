@@ -291,7 +291,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			print_device(out, "out")
 			print_device(y, "y")
 			print_device(n_id, "n_id")
-			print_device(batch_size, "batch_size")
+			# print_device(batch_size, "batch_size")
 
 			out = out.to(rank)
 
