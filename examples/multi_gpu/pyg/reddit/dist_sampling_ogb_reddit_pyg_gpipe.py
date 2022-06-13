@@ -339,15 +339,15 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
 		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
-		if epoch % 5 == 0:
-			model.eval()
-			with torch.no_grad():
-				out = evaluate(model.module, x, rank, subgraph_loader)
-			res = out.argmax(dim=-1) == y
-			acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
-			acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
-			acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
-			print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+		# if epoch % 5 == 0:
+		# 	model.eval()
+		# 	with torch.no_grad():
+		# 		out = evaluate(model.module, x, rank, subgraph_loader)
+		# 	res = out.argmax(dim=-1) == y
+		# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
 		# dist.barrier()
 
