@@ -248,7 +248,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 	# Simulate cases those data can not be fully stored by GPU memory
-	# x, y = x, y.to(rank)
+	x, y = x, y.to(rank)
 
 	for epoch in range(1, 21):
 		model.train()
@@ -260,18 +260,18 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				# 	print(adj.size[1])
 
 			sizes = [adj.size[1] for adj in adjs]
-			# sizes = [torch.tensor([size]).to(rank) for size in sizes]
-			sizes = [torch.tensor([size]) for size in sizes]
+			sizes = [torch.tensor([size]).to(rank) for size in sizes]
+			# sizes = [torch.tensor([size]) for size in sizes]
 			# print(sizes)
 
-			adjs = [adj.edge_index for adj in adjs]
-			# adjs = [adj.to(rank) for adj in adjs]
+			# adjs = [adj.edge_index for adj in adjs]
+			adjs = [adj.to(rank) for adj in adjs]
 
 			# adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
-			# out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
-			out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
+			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
+			# out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
 			#
 			# print("YSIZE",y.size())
 			# print("N_ID SIZE",n_id.size())
