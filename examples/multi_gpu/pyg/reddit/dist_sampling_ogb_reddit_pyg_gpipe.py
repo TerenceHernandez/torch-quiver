@@ -113,7 +113,8 @@ class PipelineableSAGEConv(MessagePassing):
 
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
-			print_device(self.conv, 'SAGEConv')
+			print_device(self.conv.lin_l.weight, 'SAGEConv weights')
+			print_device(self.conv.lin_l.bias, 'SAGEConv biias')
 			after_SAGE = self.conv((x, x_target), edge_index)
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
