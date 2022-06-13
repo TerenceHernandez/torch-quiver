@@ -69,6 +69,31 @@ class SAGE(torch.nn.Module):
 
 		return x_all
 
+def evaluate(model: Sequential, x_all, device, subgraph_loader):
+	convs = [model[0], model[3]]
+	num_convs = len(convs)
+
+	pbar = tqdm(total=x_all.size(0) * num_convs)
+	pbar.set_description('Evaluating')
+
+	for i in convs:
+		xs = []
+		for batch_size, n_id, adj in subgraph_loader:
+			edge_index, _, size = adj.to(device)
+			x = x_all[n_id].to(device)
+			x_target = x[:size[1]]
+			x = convs[i]((x, x_target), edge_index)
+			if i != num_convs - 1:
+				x = F.relu(x)
+			xs.append(x)
+
+			pbar.update(batch_size)
+
+		x_all = torch.cat(xs, dim=0)
+
+	pbar.close()
+
+	return x_all
 
 def print_device(data, text_to_print):
 	try:
@@ -313,6 +338,16 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
 		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
 		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+
+		if epoch % 5 == 0:
+			model.eval()
+			with torch.no_grad():
+				out = evaluate(model.module, x, rank, subgraph_loader)
+			res = out.argmax(dim=-1) == y
+			acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+			acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+			acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+			print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
 		# dist.barrier()
 
