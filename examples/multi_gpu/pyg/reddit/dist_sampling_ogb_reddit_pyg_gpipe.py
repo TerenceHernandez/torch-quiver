@@ -4,6 +4,7 @@ from typing import Union, List, Optional
 import torch
 from torch import Tensor
 from torch.distributed.pipeline.sync import Pipe
+from torchgpipe import GPipe
 from torch.nn import Module, Sequential
 from torch.nn.parallel import DistributedDataParallel
 from torch_geometric.typing import OptPairTensor, Adj
@@ -217,17 +218,18 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		PipelineableSAGEConv(rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes),
 		ModifiedLogMax(dim=-1)
 	)
-	model.to(rank)
+	# model.to(rank)
 
 	if rank == 0:
 		print(model)
 
 	# model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
 
-	# TODO change input to tensor type (concatenate each batch with indexes, and sizes)
+	# TODO change input to tensor type (concatenate each batch with indexes, and sizes)?
 
 	# model = Pipe(model, chunks=1, checkpoint='never')
-	model = DistributedDataParallel(model, device_ids=[rank])
+	model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
+	# model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
@@ -244,16 +246,18 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				# 	print(adj.size[1])
 
 			sizes = [adj.size[1] for adj in adjs]
-			sizes = [torch.tensor([size]).to(rank) for size in sizes]
+			# sizes = [torch.tensor([size]).to(rank) for size in sizes]
+			sizes = [torch.tensor([size]) for size in sizes]
 			# print(sizes)
 
 			adjs = [adj.edge_index for adj in adjs]
-			adjs = [adj.to(rank) for adj in adjs]
+			# adjs = [adj.to(rank) for adj in adjs]
 
 			# adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
-			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
+			# out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
+			out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
 			#
 			# print("YSIZE",y.size())
 			# print("N_ID SIZE",n_id.size())
