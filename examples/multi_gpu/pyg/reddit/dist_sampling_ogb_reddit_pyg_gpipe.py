@@ -279,7 +279,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			loss.backward()
 			optimizer.step()
 
-		dist.barrier()
+		# dist.barrier()
 
 		if rank == 0:
 			print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Time: {time.time() - epoch_start}')
@@ -294,9 +294,9 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
 		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
-		dist.barrier()
+		# dist.barrier()
 
-	dist.destroy_process_group()
+	# dist.destroy_process_group()
 
 
 if __name__ == '__main__':
