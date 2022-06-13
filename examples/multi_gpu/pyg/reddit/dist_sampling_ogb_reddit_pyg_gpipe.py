@@ -192,7 +192,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	os.environ['MASTER_PORT'] = '12355'
 	# dist.init_process_group('nccl', rank=rank, world_size=world_size)
 	torch.torch.cuda.set_device(rank)
-	init_rpc(f'worker{rank}', rank=rank, world_size=world_size)
+	# init_rpc(f'worker{rank}', rank=rank, world_size=world_size)
 
 	train_mask, val_mask, test_mask = data_split
 	train_idx = train_mask.nonzero(as_tuple=False).view(-1)
@@ -305,6 +305,8 @@ if __name__ == '__main__':
 	world_size = 3  # torch.cuda.device_count()
 	print('Let\'s use', world_size, 'GPUs!')
 	data_split = (data.train_mask, data.val_mask, data.test_mask)
-	mp.spawn(run,
-					 args=(world_size, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes),
-					 nprocs=world_size, join=True)
+	# mp.spawn(run,
+	# 				 args=(world_size, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes),
+	# 				 nprocs=world_size, join=True)
+
+	run(0, world_size, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes)
