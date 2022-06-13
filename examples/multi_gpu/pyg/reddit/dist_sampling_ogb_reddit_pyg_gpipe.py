@@ -234,7 +234,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 	# Simulate cases those data can not be fully stored by GPU memory
-	x, y = x, y.to(rank)
+	# x, y = x, y.to(rank)
 
 	for epoch in range(1, 21):
 		model.train()
