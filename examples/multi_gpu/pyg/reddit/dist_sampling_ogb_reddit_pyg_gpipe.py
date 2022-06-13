@@ -70,6 +70,15 @@ class SAGE(torch.nn.Module):
 		return x_all
 
 
+def print_device(data, text_to_print):
+	try:
+		data.get_device()
+		print(text_to_print, f'at GPU{data}')
+	except RuntimeError:
+		print(text_to_print, 'at CPU')
+		pass
+
+
 class PipelineableSAGEConv(MessagePassing):
 
 	def __init__(self, rank, layer, in_channels, out_channels, *args, **kwargs):
@@ -97,6 +106,10 @@ class PipelineableSAGEConv(MessagePassing):
 			size = size0 if self.layer == 0 else size1
 
 			x_target = x[:size]
+
+			print_device(x, 'x')
+			print_device(x_target, 'x_target')
+			print_device(edge_index, 'edge_index')
 
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
