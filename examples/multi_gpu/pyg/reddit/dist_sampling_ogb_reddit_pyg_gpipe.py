@@ -72,8 +72,8 @@ class SAGE(torch.nn.Module):
 
 def print_device(data, text_to_print):
 	try:
-		data.get_device()
-		print(text_to_print, f'at GPU{data}')
+		d = data.get_device()
+		print(text_to_print, f'at GPU{d}')
 	except RuntimeError:
 		print(text_to_print, 'at CPU')
 		pass
