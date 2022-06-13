@@ -264,7 +264,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# sizes = [torch.tensor([size]) for size in sizes]
 			# print(sizes)
 
-			# adjs = [adj.edge_index for adj in adjs]
+			adjs = [adj.edge_index for adj in adjs]
 			adjs = [adj.to(rank) for adj in adjs]
 
 			# adjs = torch.stack(adjs).to(rank)
