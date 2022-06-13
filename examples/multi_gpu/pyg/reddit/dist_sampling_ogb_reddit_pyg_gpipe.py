@@ -293,6 +293,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			print_device(n_id, "n_id")
 			print_device(batch_size, "batch_size")
 
+			out = out.to(rank)
+
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 
 			loss.backward()
