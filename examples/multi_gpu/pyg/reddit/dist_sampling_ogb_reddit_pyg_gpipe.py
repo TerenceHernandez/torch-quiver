@@ -227,6 +227,8 @@ class ModifiedLogMax(Module):
 
 
 def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classes):
+	chunk_num = 1
+
 	os.environ['MASTER_ADDR'] = 'localhost'
 	os.environ['MASTER_PORT'] = '12355'
 	# dist.init_process_group('nccl', rank=rank, world_size=world_size)
@@ -267,7 +269,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	# TODO change input to tensor type (concatenate each batch with indexes, and sizes)?
 
 	# model = Pipe(model, chunks=1, checkpoint='never')
-	model = GPipe(model, balance=[1, 2, 2], chunks=2, checkpoint='never')
+	model = GPipe(model, balance=[1, 2, 2], chunks=chunk_num, checkpoint='never')
 	# model = DistributedDataParallel(model, device_ids=[rank])
 
 	optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -295,6 +297,12 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# adjs = torch.stack(adjs).to(rank)
 
 			optimizer.zero_grad()
+
+			# TODO calculate x and x_target manually for all sampling layer, make edge_index i.e. adjs global (or not)!
+			# TODO using chunk_num, multiply edge_index across manually
+			# TODO using chunk_num
+			print(n_id)
+
 			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
 			# out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
 			#
