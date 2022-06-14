@@ -340,6 +340,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 				n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
 				n_id_targets = torch.stack(n_id_targets).squeeze()
+				print(n_id_sources_only.size())
+
 				n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
 				n_id_sources_only = torch.stack(n_id_sources_only).squeeze()
 
