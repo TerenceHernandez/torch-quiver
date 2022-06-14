@@ -235,7 +235,7 @@ class ModifiedDropOut(_DropoutNd):
 		after_SAGE_cpu = after_SAGE.cpu()
 
 		n_id = nid_t.squeeze().cpu()
-		print("N_ID_T", self.n_id.size())
+		print("N_ID_T", n_id.size())
 
 		self.x[n_id] = after_SAGE_cpu
 
