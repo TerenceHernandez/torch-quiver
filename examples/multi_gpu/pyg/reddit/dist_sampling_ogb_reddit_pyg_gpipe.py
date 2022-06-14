@@ -160,7 +160,9 @@ class PipelineableSAGEConv(MessagePassing):
 			# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
 			# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
 			# after_SAGE = self.conv((x, x_target), edge_index)
+			print("b_sage", x_s.size(), x_target.size())
 			after_SAGE = self.conv((x_s, x_target), edge_idx)
+			print("a_sage", after_SAGE)
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
@@ -229,7 +231,9 @@ class ModifiedDropOut(_DropoutNd):
 
 		after_SAGE = F.dropout(after_SAGE, self.p, self.training, self.inplace)
 		after_SAGE_cpu = after_SAGE.cpu()
-		self.x[nid_s] = after_SAGE_cpu
+
+		n_id = nid_s.cpu()
+		self.x[n_id] = after_SAGE_cpu
 
 		return nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
 
