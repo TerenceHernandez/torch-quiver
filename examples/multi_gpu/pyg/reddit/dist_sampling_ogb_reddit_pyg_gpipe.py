@@ -160,6 +160,8 @@ class PipelineableSAGEConv(MessagePassing):
 			# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
 			# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
 			# after_SAGE = self.conv((x, x_target), edge_index)
+			print('x', self.x.size())
+			print('n_s', nid_s.size())
 			print("b_sage", x_s.size(), x_target.size())
 			after_SAGE = self.conv((x_s, x_target), edge_idx)
 			print("a_sage", after_SAGE.size())
