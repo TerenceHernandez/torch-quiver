@@ -139,7 +139,7 @@ class PipelineableSAGEConv(MessagePassing):
 			nid_s = nid_s0 if self.layer == 0 else nid_s1
 			edge_idx = edge0 if self.layer == 0 else edge1
 
-			device = self.conv.get_device()
+			device = self.conv.lin_l.weight.get_device()
 
 			x_target = self.x[nid_t].to(device)
 			x_s = self.x[nid_s].to(device)
