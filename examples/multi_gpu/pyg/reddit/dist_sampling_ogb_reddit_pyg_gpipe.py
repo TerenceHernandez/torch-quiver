@@ -139,35 +139,30 @@ class PipelineableSAGEConv(MessagePassing):
 			nid_s = nid_s0 if self.layer == 0 else nid_s1
 			edge_idx = edge0 if self.layer == 0 else edge1
 
-			try:
-				device = self.conv.lin_l.weight.get_device()
+			device = self.conv.lin_l.weight.get_device()
 
-				x_target = self.x[nid_t].to(device)
-				x_s = self.x[nid_s].to(device)
-				edge_idx.to(device)
+			nid_t = nid_t.cpu()
+			nid_s = nid_s.cpu()
+			print('Got here')
 
-				# x_target = x[:size]
+			x_target = self.x[nid_t].to(device)
+			x_s = self.x[nid_s].to(device)
+			edge_idx.to(device)
 
-				# print_device(x, 'x')
-				# print_device(x_target, 'x_target')
-				# print_device(edge_index, 'edge_index')
+			# x_target = x[:size]
 
-				# if self.rank == 0:
-				# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
-				# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
-				# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
-				# after_SAGE = self.conv((x, x_target), edge_index)
-				after_SAGE = self.conv((x_s, x_target), edge_idx)
-				# if self.rank == 0:
-				# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
+			# print_device(x, 'x')
+			# print_device(x_target, 'x_target')
+			# print_device(edge_index, 'edge_index')
 
-			except Exception as e:
-				# Most debuggers allow you to just do .post_mortem()
-				# but see https://github.com/gotcha/ipdb/pull/94
-				import sys
-				tb = sys.exc_info()[2]
-				import ipdb
-				ipdb.post_mortem(tb)
+			# if self.rank == 0:
+			# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
+			# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
+			# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
+			# after_SAGE = self.conv((x, x_target), edge_index)
+			after_SAGE = self.conv((x_s, x_target), edge_idx)
+			# if self.rank == 0:
+			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 			# return after_SAGE, edj0, edj1, size0, size1
 			return after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
@@ -371,10 +366,10 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				edge_indexes.append(edge_index)
 
 			out = model(
-				(n_id_targets_list[0],
-				 n_id_targets_list[1],
-				 n_id_sources_list[0],
-				 n_id_sources_list[1],
+				(n_id_targets_list[0].to(rank),
+				 n_id_targets_list[1].to(rank),
+				 n_id_sources_list[0].to(rank),
+				 n_id_sources_list[1].to(rank),
 				 edge_indexes[0],
 				 edge_indexes[1])
 			)
