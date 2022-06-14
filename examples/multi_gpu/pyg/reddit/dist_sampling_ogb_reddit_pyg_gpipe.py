@@ -229,12 +229,14 @@ class ModifiedDropOut(_DropoutNd):
 		# x, adjs = x_adjs
 		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
 
-		nid_s = nid_s0 if self.layer == 0 else nid_s1
+		nid_t = nid_t0 if self.layer == 0 else nid_t1
 
 		after_SAGE = F.dropout(after_SAGE, self.p, self.training, self.inplace)
 		after_SAGE_cpu = after_SAGE.cpu()
 
-		n_id = nid_s.squeeze().cpu()
+		n_id = nid_t.squeeze().cpu()
+		print("N_ID_T", self.n_id.size())
+
 		self.x[n_id] = after_SAGE_cpu
 
 		return nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
