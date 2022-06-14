@@ -16,7 +16,6 @@ import torch.distributed as dist
 
 from torch.distributed.rpc import init_rpc
 
-
 from torch_geometric.nn import SAGEConv, MessagePassing
 from torch_geometric.datasets import Reddit
 from torch_geometric.loader import NeighborSampler
@@ -25,10 +24,11 @@ import time
 
 
 class SAGE(torch.nn.Module):
-	def __init__(self, in_channels, hidden_channels, out_channels,
+	def __init__(self, x, in_channels, hidden_channels, out_channels,
 							 num_layers=2):
 		super(SAGE, self).__init__()
 		self.num_layers = num_layers
+		self.x = x
 
 		self.convs = torch.nn.ModuleList()
 		self.convs.append(SAGEConv(in_channels, hidden_channels))
@@ -69,6 +69,7 @@ class SAGE(torch.nn.Module):
 
 		return x_all
 
+
 def evaluate(model: Sequential, x_all, device, subgraph_loader):
 	convs = [model[0], model[3]]
 	num_convs = len(convs)
@@ -95,6 +96,7 @@ def evaluate(model: Sequential, x_all, device, subgraph_loader):
 
 	return x_all
 
+
 def print_device(data, text_to_print):
 	try:
 		d = data.get_device()
@@ -106,12 +108,13 @@ def print_device(data, text_to_print):
 
 class PipelineableSAGEConv(MessagePassing):
 
-	def __init__(self, rank, layer, in_channels, out_channels, *args, **kwargs):
+	def __init__(self, x, rank, layer, in_channels, out_channels, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.in_channels = in_channels
 		self.out_channels = out_channels
 
 		self.rank = rank
+		self.x = x
 
 		self.conv = SAGEConv(in_channels, out_channels, *args, *kwargs)
 		self.layer = layer
@@ -123,14 +126,26 @@ class PipelineableSAGEConv(MessagePassing):
 		if self.training:
 			# x, edge_index = x_adjs
 
-			x, edj0, edj1, size0, size1 = x_edgs
+			nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+
+			# x, edj0, edj1, size0, size1 = x_edgs
 
 			# Calculate the right layers
 			# edge_index, _, size = adjs[self.layer]
-			edge_index = edj0 if self.layer == 0 else edj1
-			size = size0 if self.layer == 0 else size1
+			# edge_index = edj0 if self.layer == 0 else edj1
+			# size = size0 if self.layer == 0 else size1
 
-			x_target = x[:size]
+			nid_t = nid_t0 if self.layer == 0 else nid_t1
+			nid_s = nid_s0 if self.layer == 0 else nid_s1
+			edge_idx = edge0 if self.layer == 0 else edge1
+
+			device = self.conv.get_device()
+
+			x_target = self.x[nid_t].to(device)
+			x_s = self.x[nid_s].to(device)
+			edge_idx.to(device)
+
+			# x_target = x[:size]
 
 			# print_device(x, 'x')
 			# print_device(x_target, 'x_target')
@@ -140,11 +155,13 @@ class PipelineableSAGEConv(MessagePassing):
 			# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
 			# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
 			# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
-			after_SAGE = self.conv((x, x_target), edge_index)
+			# after_SAGE = self.conv((x, x_target), edge_index)
+			after_SAGE = self.conv((x_s, x_target), edge_idx)
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
-			return after_SAGE, edj0, edj1, size0, size1
+			# return after_SAGE, edj0, edj1, size0, size1
+			return after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
 
 	# else:
 	# 	# Already in the format that we want
@@ -172,9 +189,11 @@ class ModifiedReLU(Module):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		x, edj0, edj1, size0, size1 = x_edgs
+		# x, edj0, edj1, size0, size1 = x_edgs
 
-		return F.relu(x, inplace=self.inplace), edj0, edj1, size0, size1
+		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+
+		return F.relu(after_SAGE, inplace=self.inplace), nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
 
 
 class _DropoutNd(Module):
@@ -182,13 +201,15 @@ class _DropoutNd(Module):
 	p: float
 	inplace: bool
 
-	def __init__(self, p: float = 0.5, inplace: bool = False) -> None:
+	def __init__(self, x, layer, p: float = 0.5, inplace: bool = False) -> None:
 		super(_DropoutNd, self).__init__()
 		if p < 0 or p > 1:
 			raise ValueError("dropout probability has to be between 0 and 1, "
 											 "but got {}".format(p))
 		self.p = p
 		self.inplace = inplace
+		self.x = x
+		self.layer = layer
 
 	def extra_repr(self) -> str:
 		return 'p={}, inplace={}'.format(self.p, self.inplace)
@@ -198,9 +219,15 @@ class ModifiedDropOut(_DropoutNd):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		x, edj0, edj1, size0, size1 = x_edgs
+		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
 
-		return F.dropout(x, self.p, self.training, self.inplace), edj0, edj1, size0, size1
+		nid_s = nid_s0 if self.layer == 0 else nid_s1
+
+		after_SAGE = F.dropout(after_SAGE, self.p, self.training, self.inplace)
+		after_SAGE_cpu = after_SAGE.cpu()
+		self.x[nid_s] = after_SAGE_cpu
+
+		return nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
 
 
 class ModifiedLogMax(Module):
@@ -218,9 +245,10 @@ class ModifiedLogMax(Module):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		x, edj0, edj1, size0, size1 = x_edgs
+		# x, edj0, edj1, size0, size1 = x_edgs
+		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
 
-		return F.log_softmax(x, self.dim, _stacklevel=5)
+		return F.log_softmax(after_SAGE, self.dim, _stacklevel=5)
 
 	def extra_repr(self):
 		return 'dim={dim}'.format(dim=self.dim)
@@ -253,10 +281,10 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 	# model = SAGE(num_features, 256, num_classes).to(rank)
 	hidden_channels = 256
 	model = Sequential(
-		PipelineableSAGEConv(rank=rank, layer=0, in_channels=num_features, out_channels=hidden_channels),
+		PipelineableSAGEConv(x=x, rank=rank, layer=0, in_channels=num_features, out_channels=hidden_channels),
 		ModifiedReLU(),
-		ModifiedDropOut(p=0.5),
-		PipelineableSAGEConv(rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes),
+		ModifiedDropOut(x=x, p=0.5, layer=0),
+		PipelineableSAGEConv(x=x, rank=rank, layer=1, in_channels=hidden_channels, out_channels=num_classes),
 		ModifiedLogMax(dim=-1)
 	)
 	# model.to(rank)
@@ -283,8 +311,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		for batch_size, n_id, adjs in train_loader:
 
 			# if rank == 0:
-				# for adj in adjs:
-				# 	print(adj.size[1])
+			# for adj in adjs:
+			# 	print(adj.size[1])
 
 			sizes = [adj.size[1] for adj in adjs]
 			sizes = [torch.tensor([size]).to(rank) for size in sizes]
@@ -303,7 +331,38 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# TODO using chunk_num
 			print(n_id.size())
 
-			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
+			n_id_targets_list = []
+			n_id_sources_list = []
+
+			for size in sizes:
+				n_id_targets = n_id[:size]
+				n_id_sources_only = n_id[size:]
+
+				n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num, dim=1)
+				n_id_targets = torch.stack(n_id_targets).squeeze()
+				n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num, dim=1)
+				n_id_sources_only = torch.stack(n_id_sources_only).squeeze()
+
+				n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
+
+				n_id_targets_list.append(n_id_targets)
+				n_id_sources_list.append(n_id_sources)
+
+			edge_indexes = []
+			for adj in adjs:
+				edge_index = adj.repeat(chunk_num, 1)
+				edge_indexes.append(edge_index)
+
+			out = model(
+				(n_id_targets_list[0],
+				 n_id_targets_list[1],
+				 n_id_sources_list[0],
+				 n_id_sources_list[1],
+				 edge_indexes[0],
+				 edge_indexes[1])
+			)
+
+			# out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
 			# out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
 			#
 			# print("YSIZE",y.size())
@@ -337,29 +396,30 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 		if rank == 0:
 			print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Time: {time.time() - epoch_start}')
 
-		# if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
-		# 	model.eval()
-		# 	with torch.no_grad():
-		# 		out = model.module.inference(x, rank, subgraph_loader)
-		# 	res = out.argmax(dim=-1) == y
-		# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
-		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
-		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
-		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+	# if rank == 0 and epoch % 5 == 0:  # We evaluate on a single GPU for now
+	# 	model.eval()
+	# 	with torch.no_grad():
+	# 		out = model.module.inference(x, rank, subgraph_loader)
+	# 	res = out.argmax(dim=-1) == y
+	# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+	# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+	# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+	# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
-		# if epoch % 5 == 0:
-		# 	model.eval()
-		# 	with torch.no_grad():
-		# 		out = evaluate(model.module, x, rank, subgraph_loader)
-		# 	res = out.argmax(dim=-1) == y
-		# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
-		# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
-		# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
-		# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
+	# if epoch % 5 == 0:
+	# 	model.eval()
+	# 	with torch.no_grad():
+	# 		out = evaluate(model.module, x, rank, subgraph_loader)
+	# 	res = out.argmax(dim=-1) == y
+	# 	acc1 = int(res[train_mask].sum()) / int(train_mask.sum())
+	# 	acc2 = int(res[val_mask].sum()) / int(val_mask.sum())
+	# 	acc3 = int(res[test_mask].sum()) / int(test_mask.sum())
+	# 	print(f'Train: {acc1:.4f}, Val: {acc2:.4f}, Test: {acc3:.4f}')
 
-		# dist.barrier()
+	# dist.barrier()
 
-	# dist.destroy_process_group()
+
+# dist.destroy_process_group()
 
 
 if __name__ == '__main__':
