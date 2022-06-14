@@ -301,7 +301,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# TODO calculate x and x_target manually for all sampling layer, make edge_index i.e. adjs global (or not)!
 			# TODO using chunk_num, multiply edge_index across manually
 			# TODO using chunk_num
-			print(n_id)
+			print(n_id.size())
 
 			out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
 			# out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
