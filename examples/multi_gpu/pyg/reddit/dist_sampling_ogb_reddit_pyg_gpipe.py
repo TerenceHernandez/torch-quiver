@@ -132,6 +132,11 @@ class PipelineableSAGEConv(MessagePassing):
 
 			device = self.conv.lin_l.weight.get_device()
 			if self.layer == 0:
+				# Chunking requires adds another layer, squeeze arguments first to get rid of it
+				n_id_sources = n_id_sources.squeeze()
+				n_id_targets = n_id_targets.squeeze()
+				size_2 = size_2.squeeze()
+
 				nid_s = n_id_sources.cpu()
 				nid_t = n_id_targets.cpu()
 				x_target = self.x[nid_t].to(device)
