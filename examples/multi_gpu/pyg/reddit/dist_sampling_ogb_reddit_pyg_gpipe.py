@@ -139,7 +139,9 @@ class PipelineableSAGEConv(MessagePassing):
 				x_s = x
 				edge_index = edge_indexes1.to(device)
 
+			print('b SAGE', x_s.size(), x_target.size())
 			after_SAGE = self.conv((x_s, x_target), edge_index)
+			print('a SAGE', x_s.size(), x_target.size())
 
 
 			# nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
