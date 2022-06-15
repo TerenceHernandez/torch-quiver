@@ -294,7 +294,7 @@ class ModifiedLogMax(Module):
 
 
 def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classes):
-	chunk_num = 1
+	chunk_num = 2
 
 	os.environ['MASTER_ADDR'] = 'localhost'
 	os.environ['MASTER_PORT'] = '12355'
