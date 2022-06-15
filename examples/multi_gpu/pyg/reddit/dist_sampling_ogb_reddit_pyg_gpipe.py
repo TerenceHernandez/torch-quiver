@@ -397,24 +397,30 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 			# 1st layer information
 			n_id_targets = n_id[:sizes[0]]
-			n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
-			n_id_targets = torch.stack(n_id_targets)
 			n_id_sources_only = n_id[sizes[0]:]
-			n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
-			n_id_sources_only = torch.stack(n_id_sources_only)
-			print("1", n_id_sources_only.size(), n_id_targets.size())
-			if chunk_num != 1:
-				n_id_targets = n_id_targets.squeeze()
-				n_id_sources_only = n_id_sources_only.squeeze()
-
-			print("2", n_id_sources_only.size(), n_id_targets.size())
-			n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
+			n_id_sources = n_id
 
 			# 2nd layer information
 			# We just want to divide the size by chunk_num
 			size_2 = torch.div(sizes[1], chunk_num, rounding_mode='trunc')
-			# Repeat for each chunk, so they know size_2
-			size_2 = size_2.repeat(chunk_num, 1)
+
+			# Chunk manually for chunk_num > 1
+			if chunk_num > 1:
+				n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
+				n_id_targets = torch.stack(n_id_targets)
+				n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
+				n_id_sources_only = torch.stack(n_id_sources_only)
+				print("1", n_id_sources_only.size(), n_id_targets.size())
+
+				n_id_targets = n_id_targets.squeeze()
+				n_id_sources_only = n_id_sources_only.squeeze()
+
+				print("2", n_id_sources_only.size(), n_id_targets.size())
+
+				n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
+
+				# Let every micro-batch know what size_2 is
+				size_2 = size_2.repeat(chunk_num, 1)
 
 			edge_indexes = []
 			for adj in adjs:
