@@ -129,7 +129,7 @@ class PipelineableSAGEConv(MessagePassing):
 
 			x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
 
-			print("arg sizes", x.size(), n_id_sources.size(), n_id_targets.size(), edge_indexes0.size(), edge_indexes1.size(), size_2.size())
+			# print("arg sizes", x.size(), n_id_sources.size(), n_id_targets.size(), edge_indexes0.size(), edge_indexes1.size(), size_2.size())
 
 			device = self.conv.lin_l.weight.get_device()
 			if self.layer == 0:
@@ -156,10 +156,10 @@ class PipelineableSAGEConv(MessagePassing):
 				x_s = x
 				edge_index = edge_index.to(device)
 
-			print('b SAGE', x_s.size(), x_target.size())
+			# print('b SAGE', x_s.size(), x_target.size())
 
 			after_SAGE = self.conv((x_s, x_target), edge_index)
-			print('a SAGE', after_SAGE.size())
+			# print('a SAGE', after_SAGE.size())
 
 
 			# nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
@@ -383,7 +383,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# TODO calculate x and x_target manually for all sampling layer, make edge_index i.e. adjs global (or not)!
 			# TODO using chunk_num, multiply edge_index across manually
 			# TODO using chunk_num
-			print(n_id.size())
+			# print(n_id.size())
 
 			# n_id_targets_list = []
 			# n_id_sources_list = []
@@ -441,12 +441,12 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 																int(padding_choice))
 
 				n_id_sources_only = torch.stack(n_id_sources_only)
-				print("1", n_id_sources_only.size(), n_id_targets.size())
+				# print("1", n_id_sources_only.size(), n_id_targets.size())
 
 				n_id_targets = n_id_targets.squeeze()
 				n_id_sources_only = n_id_sources_only.squeeze()
 
-				print("2", n_id_sources_only.size(), n_id_targets.size())
+				# print("2", n_id_sources_only.size(), n_id_targets.size())
 
 				n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
 
@@ -458,8 +458,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				edge_index = adj.repeat(chunk_num, 1)
 				edge_indexes.append(edge_index)
 
-			print("model args", torch.empty(0).size(), n_id_sources.size(), n_id_targets.size(),
-						edge_indexes[0].size(), edge_indexes[1].size(), size_2.size())
+			# print("model args", torch.empty(0).size(), n_id_sources.size(), n_id_targets.size(),
+			# 			edge_indexes[0].size(), edge_indexes[1].size(), size_2.size())
 
 			out = model((
 				torch.empty(0),
@@ -502,8 +502,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# print_device(n_id, "n_id")
 
 			out = out.to(rank)
-			print("OUT", out.size())
-			print("LABEL", y[n_id[:batch_size]].size())
+			# print("OUT", out.size())
+			# print("LABEL", y[n_id[:batch_size]].size())
 
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 
