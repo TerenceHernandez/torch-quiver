@@ -415,7 +415,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
 
 				# Pad last chunk with a random n_id if chunking is not even: pad n_id_targets[0] - n_id_targets[1] so it is even
-				padding_choice = n_id[torch.randint(len(n_id), (1,))]
+				n_id_targs = n_id[:sizes[0]]
+				padding_choice = n_id_targs[torch.randint(len(n_id_targs), (1,))]
 				n_id_targets = list(n_id_targets)
 				n_id_targets[-1] = F.pad(n_id_targets[-1], (0, len(n_id_targets[0]) - len(n_id_targets[1])), "constant",
 																int(padding_choice))
@@ -424,7 +425,8 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 				n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
 
 				# Pad last chunk with a random n_id if chunking is not even: pad n_id_sources_only[0] - n_id_sources_only[1] so it is even
-				padding_choice = n_id[torch.randint(len(n_id), (1,))]
+				n_id_srcs = n_id[sizes[0]:]
+				padding_choice = n_id_srcs[torch.randint(len(n_id_srcs), (1,))]
 				n_id_sources_only = list(n_id_sources_only)
 				n_id_sources_only[-1] = F.pad(n_id_sources_only[-1], (0, len(n_id_sources_only[0]) - len(n_id_sources_only[1])), "constant",
 																int(padding_choice))
