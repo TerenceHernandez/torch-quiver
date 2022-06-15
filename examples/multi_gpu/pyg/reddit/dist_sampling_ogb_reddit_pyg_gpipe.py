@@ -147,7 +147,7 @@ class PipelineableSAGEConv(MessagePassing):
 
 				edge_index = edge_index.to(device)
 			else:
-				edge_index = edge_indexes0
+				edge_index = edge_indexes1
 				# Chunking requires adds another layer, index arguments first to get rid of it
 				if len(list(n_id_sources.size())) > 1:
 					size_2 = size_2[0]
