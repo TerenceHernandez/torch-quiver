@@ -133,24 +133,27 @@ class PipelineableSAGEConv(MessagePassing):
 
 			device = self.conv.lin_l.weight.get_device()
 			if self.layer == 0:
+				edge_index = edge_indexes0
 				# Chunking requires adds another layer, index arguments first to get rid of it
 				if len(list(n_id_sources.size())) > 1:
 					n_id_sources = n_id_sources[0]
 					n_id_targets = n_id_targets[0]
+					edge_index, _ = subgraph(n_id_sources, edge_indexes0)
 
 				nid_s = n_id_sources.cpu()
 				nid_t = n_id_targets.cpu()
 				x_target = self.x[nid_t].to(device)
 				x_s = self.x[nid_s].to(device)
-				edge_index, _ = subgraph(n_id_sources, edge_indexes0)
+
 				edge_index = edge_index.to(device)
 			else:
+				edge_index = edge_indexes0
 				# Chunking requires adds another layer, index arguments first to get rid of it
 				if len(list(n_id_sources.size())) > 1:
 					size_2 = size_2[0]
+					edge_index, _ = subgraph(n_id_targets, edge_indexes1)
 				x_target = x[:size_2]
 				x_s = x
-				edge_index, _ = subgraph(n_id_targets, edge_indexes1)
 				edge_index = edge_index.to(device)
 
 			print('b SAGE', x_s.size(), x_target.size())
