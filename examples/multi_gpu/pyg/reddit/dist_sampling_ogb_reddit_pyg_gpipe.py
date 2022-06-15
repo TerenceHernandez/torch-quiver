@@ -132,10 +132,9 @@ class PipelineableSAGEConv(MessagePassing):
 
 			device = self.conv.lin_l.weight.get_device()
 			if self.layer == 0:
-				# Chunking requires adds another layer, squeeze arguments first to get rid of it
-				n_id_sources = n_id_sources.squeeze()
-				n_id_targets = n_id_targets.squeeze()
-				size_2 = size_2.squeeze()
+				# Chunking requires adds another layer, index arguments first to get rid of it
+				n_id_sources = n_id_sources[0]
+				n_id_targets = n_id_targets[0]
 
 				nid_s = n_id_sources.cpu()
 				nid_t = n_id_targets.cpu()
@@ -143,6 +142,8 @@ class PipelineableSAGEConv(MessagePassing):
 				x_s = self.x[nid_s].to(device)
 				edge_index = edge_indexes0.to(device)
 			else:
+				# Chunking requires adds another layer, index arguments first to get rid of it
+				size_2 = size_2[0]
 				x_target = x[:size_2]
 				x_s = x
 				edge_index = edge_indexes1.to(device)
