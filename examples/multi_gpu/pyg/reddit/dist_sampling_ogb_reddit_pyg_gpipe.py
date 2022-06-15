@@ -4,6 +4,7 @@ from typing import Union, List, Optional
 import torch
 from torch import Tensor
 from torch.distributed.pipeline.sync import Pipe
+from torch_geometric.utils import subgraph
 from torchgpipe import GPipe
 from torch.nn import Module, Sequential
 from torch.nn.parallel import DistributedDataParallel
@@ -140,15 +141,18 @@ class PipelineableSAGEConv(MessagePassing):
 				nid_t = n_id_targets.cpu()
 				x_target = self.x[nid_t].to(device)
 				x_s = self.x[nid_s].to(device)
-				edge_index = edge_indexes0.to(device)
+				edge_index, _ = subgraph(n_id_sources, edge_indexes0)
+				edge_index = edge_index.to(device)
 			else:
 				# Chunking requires adds another layer, index arguments first to get rid of it
 				size_2 = size_2[0]
 				x_target = x[:size_2]
 				x_s = x
-				edge_index = edge_indexes1.to(device)
+				edge_index, _ = subgraph(n_id_targets, edge_indexes1)
+				edge_index = edge_index.to(device)
 
 			print('b SAGE', x_s.size(), x_target.size())
+
 			after_SAGE = self.conv((x_s, x_target), edge_index)
 			print('a SAGE', after_SAGE.size())
 
