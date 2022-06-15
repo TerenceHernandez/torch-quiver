@@ -127,6 +127,9 @@ class PipelineableSAGEConv(MessagePassing):
 			# x, edge_index = x_adjs
 
 			x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
+
+			print("arg sizes", x.size(), n_id_sources.size(), n_id_targets.size(), edge_indexes0.size(), edge_indexes1.size(), size_2.size())
+
 			device = self.conv.lin_l.weight.get_device()
 			if self.layer == 0:
 				nid_s = n_id_sources.cpu()
@@ -417,6 +420,9 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			for adj in adjs:
 				edge_index = adj.repeat(chunk_num, 1)
 				edge_indexes.append(edge_index)
+
+			print("model args", torch.empty(0).size(), n_id_sources.size(), n_id_targets.size(),
+						edge_indexes[0].size(), edge_indexes[1].size(), size_2.size())
 
 			out = model((
 				torch.empty(0),
