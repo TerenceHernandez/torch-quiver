@@ -126,7 +126,23 @@ class PipelineableSAGEConv(MessagePassing):
 		if self.training:
 			# x, edge_index = x_adjs
 
-			nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+			x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
+			device = self.conv.lin_l.weight.get_device()
+			if self.layer == 0:
+				nid_s = n_id_sources.cpu()
+				nid_t = n_id_targets.cpu()
+				x_target = self.x[nid_t].to(device)
+				x_s = self.x[nid_s].to(device)
+				edge_index = edge_indexes0.to(device)
+			else:
+				x_target = x[:size_2]
+				x_s = x
+				edge_index = edge_indexes1.to(device)
+
+			after_SAGE = self.conv((x_s, x_target), edge_index)
+
+
+			# nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
 
 			# x, edj0, edj1, size0, size1 = x_edgs
 
@@ -135,19 +151,20 @@ class PipelineableSAGEConv(MessagePassing):
 			# edge_index = edj0 if self.layer == 0 else edj1
 			# size = size0 if self.layer == 0 else size1
 
-			nid_t = nid_t0 if self.layer == 0 else nid_t1
-			nid_s = nid_s0 if self.layer == 0 else nid_s1
-			edge_idx = edge0 if self.layer == 0 else edge1
-
-			device = self.conv.lin_l.weight.get_device()
-
-			nid_t = nid_t.squeeze().cpu()
-			nid_s = nid_s.squeeze().cpu()
-			print('Got here')
-
-			x_target = self.x[nid_t].to(device)
-			x_s = self.x[nid_s].to(device)
-			edge_idx.to(device)
+			# Experiments using ni_ds and global graph
+			# nid_t = nid_t0 if self.layer == 0 else nid_t1
+			# nid_s = nid_s0 if self.layer == 0 else nid_s1
+			# edge_idx = edge0 if self.layer == 0 else edge1
+			#
+			# device = self.conv.lin_l.weight.get_device()
+			#
+			# nid_t = nid_t.squeeze().cpu()
+			# nid_s = nid_s.squeeze().cpu()
+			# print('Got here')
+			#
+			# x_target = self.x[nid_t].to(device)
+			# x_s = self.x[nid_s].to(device)
+			# edge_idx.to(device)
 
 			# x_target = x[:size]
 
@@ -160,16 +177,17 @@ class PipelineableSAGEConv(MessagePassing):
 			# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
 			# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
 			# after_SAGE = self.conv((x, x_target), edge_index)
-			print('x', self.x.size())
-			print('n_s', nid_s.size())
-			print("b_sage", x_s.size(), x_target.size())
-			after_SAGE = self.conv((x_s, x_target), edge_idx)
-			print("a_sage", after_SAGE.size())
+			# print('x', self.x.size())
+			# print('n_s', nid_s.size())
+			# print("b_sage", x_s.size(), x_target.size())
+			# after_SAGE = self.conv((x_s, x_target), edge_idx)
+			# print("a_sage", after_SAGE.size())
 			# if self.rank == 0:
 			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
 
 			# return after_SAGE, edj0, edj1, size0, size1
-			return after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
+			# return after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
+			return after_SAGE, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2
 
 	# else:
 	# 	# Already in the format that we want
@@ -199,9 +217,10 @@ class ModifiedReLU(Module):
 		# x, adjs = x_adjs
 		# x, edj0, edj1, size0, size1 = x_edgs
 
-		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+		# after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+		x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
 
-		return F.relu(after_SAGE, inplace=self.inplace), nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
+		return F.relu(x, inplace=self.inplace), n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2
 
 
 class _DropoutNd(Module):
@@ -227,19 +246,20 @@ class ModifiedDropOut(_DropoutNd):
 
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
-		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+		# after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+		x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
 
-		nid_t = nid_t0 if self.layer == 0 else nid_t1
+		# nid_t = nid_t0 if self.layer == 0 else nid_t1
+		#
+		# after_SAGE = F.dropout(after_SAGE, self.p, self.training, self.inplace)
+		# after_SAGE_cpu = after_SAGE.cpu()
+		#
+		# n_id = nid_t.squeeze().cpu()
+		# print("N_ID_T", n_id.size())
+		#
+		# self.x[n_id] = after_SAGE_cpu
 
-		after_SAGE = F.dropout(after_SAGE, self.p, self.training, self.inplace)
-		after_SAGE_cpu = after_SAGE.cpu()
-
-		n_id = nid_t.squeeze().cpu()
-		print("N_ID_T", n_id.size())
-
-		self.x[n_id] = after_SAGE_cpu
-
-		return nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
+		return F.dropout(x, self.p, self.training, self.inplace), n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2
 
 
 class ModifiedLogMax(Module):
@@ -258,9 +278,11 @@ class ModifiedLogMax(Module):
 	def forward(self, x_edgs):
 		# x, adjs = x_adjs
 		# x, edj0, edj1, size0, size1 = x_edgs
-		after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
+		# after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
 
-		return F.log_softmax(after_SAGE, self.dim, _stacklevel=5)
+		x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
+
+		return F.log_softmax(x, self.dim, _stacklevel=5)
 
 	def extra_repr(self):
 		return 'dim={dim}'.format(dim=self.dim)
@@ -343,44 +365,70 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# TODO using chunk_num
 			print(n_id.size())
 
-			n_id_targets_list = []
-			n_id_sources_list = []
+			# n_id_targets_list = []
+			# n_id_sources_list = []
 
-			for size in sizes:
-				n_id_targets = n_id[:size]
-				n_id_sources_only = n_id[size:]
+			# for size in sizes:
+			# 	n_id_targets = n_id[:size]
+			# 	n_id_sources_only = n_id[size:]
+			#
+			# 	n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
+			# 	n_id_targets = torch.stack(n_id_targets)
+			#
+			# 	n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
+			# 	n_id_sources_only = torch.stack(n_id_sources_only)
+			#
+			# 	# print("1", n_id_sources_only.size(), n_id_targets.size())
+			#
+			# 	if chunk_num != 1:
+			# 		n_id_targets = n_id_targets.squeeze()
+			# 		n_id_sources_only = n_id_sources_only.squeeze()
+			#
+			# 	# print("2", n_id_sources_only.size(), n_id_targets.size())
+			# 	n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
+			#
+			# 	n_id_targets_list.append(n_id_targets)
+			# 	n_id_sources_list.append(n_id_sources)
 
-				n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
-				n_id_targets = torch.stack(n_id_targets)
+			# 1st layer information
+			n_id_targets = n_id[:sizes[0]]
+			n_id_sources_only = n_id[sizes[0]:]
+			n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
+			n_id_sources_only = torch.stack(n_id_sources_only)
+			if chunk_num != 1:
+				n_id_targets = n_id_targets.squeeze()
+				n_id_sources_only = n_id_sources_only.squeeze()
 
-				n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
-				n_id_sources_only = torch.stack(n_id_sources_only)
+			n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
 
-				# print("1", n_id_sources_only.size(), n_id_targets.size())
-
-				if chunk_num != 1:
-					n_id_targets = n_id_targets.squeeze()
-					n_id_sources_only = n_id_sources_only.squeeze()
-
-				# print("2", n_id_sources_only.size(), n_id_targets.size())
-				n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
-
-				n_id_targets_list.append(n_id_targets)
-				n_id_sources_list.append(n_id_sources)
+			# 2nd layer information
+			# We just want to divide the size by chunk_num
+			size_2 = torch.div(sizes[1], chunk_num, rounding_mode='trunc')
+			# Repeat for each chunk, so they know size_2
+			size_2 = size_2.repeat(chunk_num, 1)
 
 			edge_indexes = []
 			for adj in adjs:
 				edge_index = adj.repeat(chunk_num, 1)
 				edge_indexes.append(edge_index)
 
-			out = model(
-				(n_id_targets_list[0].to(rank),
-				 n_id_targets_list[1].to(rank),
-				 n_id_sources_list[0].to(rank),
-				 n_id_sources_list[1].to(rank),
-				 edge_indexes[0],
-				 edge_indexes[1])
-			)
+			out = model((
+				torch.empty(0),
+				n_id_sources.to(rank),
+				n_id_targets.to(rank),
+				edge_indexes[0],
+				edge_indexes[1],
+				size_2
+			))
+
+			# out = model(
+			# 	(n_id_targets_list[0].to(rank),
+			# 	 n_id_targets_list[1].to(rank),
+			# 	 n_id_sources_list[0].to(rank),
+			# 	 n_id_sources_list[1].to(rank),
+			# 	 edge_indexes[0],
+			# 	 edge_indexes[1])
+			# )
 
 			# out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
 			# out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
