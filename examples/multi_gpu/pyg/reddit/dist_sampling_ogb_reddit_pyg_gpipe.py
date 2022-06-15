@@ -460,6 +460,7 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 			out = out.to(rank)
 			print("OUT", out.size())
+			print("LABEL", y[n_id[:batch_size]].size())
 
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 
