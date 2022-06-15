@@ -407,6 +407,13 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 			# Chunk manually for chunk_num > 1
 			if chunk_num > 1:
 				n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
+
+				# Pad last chunk with random n_ids if chunking is not even: We sample the difference between n_id[0] and n_id[1]
+				padding_choice = len(n_id)
+				padding_choice = n_id[torch.randint(len(n_id), (len(n_id[0]) - len(n_id[-1]),))]
+
+				n_id_targets[-1] = F.pad(n_id_targets[-1], (0, 1), "constant", padding_choice)
+
 				n_id_targets = torch.stack(n_id_targets)
 				n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
 				n_id_sources_only = torch.stack(n_id_sources_only)
