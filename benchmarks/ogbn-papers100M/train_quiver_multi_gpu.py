@@ -3,6 +3,8 @@ import time
 import glob
 import argparse
 import os.path as osp
+from pathlib import Path
+import pandas as pd
 
 import numpy as np
 from torch.utils import data
@@ -238,6 +240,13 @@ class GNN(torch.nn.Module):
         return [optimizer], [scheduler]
 
 
+def _save_as_csv(local_size, stats, stat_name, colums=None):
+  sampling_stats = pd.DataFrame(stats, columns=colums)
+  path = Path('multi_node_data/')
+  path.mkdir(parents=True, exist_ok=True)
+  sampling_stats.to_csv(f'{str(path)}/{local_size}_gpu_{stat_name}.csv')
+
+
 def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
         train_idx, num_features, num_classes):
 
@@ -360,9 +369,13 @@ def run(rank, args, world_size, quiver_sampler, quiver_feature, label,
 
     if rank == 0:
         print("Sample time statistics:", sample_time)
+        _save_as_csv(world_size, sample_time, stat_name='sampling', colums=['total_across_epoch', 'min', 'max'])
         print("Feature aggregation time statistics:", feat_time)
+        _save_as_csv(world_size, feat_time, stat_name='features', colums=['total_across_epoch', 'min', 'max'])
         print("Trainiing time statistics:", train_time)
+        _save_as_csv(world_size, train_time, stat_name='training', colums=['total_across_epoch', 'min', 'max'])
         print('Total Epoch times:', epoch_times)
+        _save_as_csv(world_size, epoch_times, stat_name='epoch')
 
     dist.destroy_process_group()
 
