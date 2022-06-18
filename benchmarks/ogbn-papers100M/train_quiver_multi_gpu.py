@@ -242,7 +242,7 @@ class GNN(torch.nn.Module):
 
 def _save_as_csv(local_size, stats, stat_name, colums=None):
   sampling_stats = pd.DataFrame(stats, columns=colums)
-  path = Path('multi_node_data/')
+  path = Path('single_node_data/')
   path.mkdir(parents=True, exist_ok=True)
   sampling_stats.to_csv(f'{str(path)}/{local_size}_gpu_{stat_name}.csv')
 
@@ -390,7 +390,7 @@ if __name__ == '__main__':
                         type=str,
                         default='graphsage',
                         choices=['gat', 'graphsage'])
-    parser.add_argument('--sizes', type=str, default='15-10')
+    parser.add_argument('--sizes', type=str, default='25-10')
     parser.add_argument('--in-memory', action='store_true')
     parser.add_argument('--device', type=str, default='0')
     parser.add_argument('--evaluate', action='store_true')
