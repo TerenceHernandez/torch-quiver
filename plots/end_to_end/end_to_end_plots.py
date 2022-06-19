@@ -19,6 +19,11 @@ machine_type_phrase = {
 	"multi": "2 nodes, "
 }
 
+machine_num_gpus = {
+	"single": 4,
+	"multi": 3
+}
+
 def convert():
 	sampling = []
 	feature = []
@@ -56,7 +61,7 @@ def end_end_stats_composition(machine='single', stat='sampling'):
 	phrase = machine_type_phrase[machine]
 
 	ax = None
-	for i in range(1, 4):
+	for i in range(1, machine_num_gpus[machine]):
 		df = read_csv(f'{root}/{i}_gpu_{stat}.csv', usecols=['total_across_epoch'])
 		ax = df.plot(y='total_across_epoch', kind='line', ax=ax, label=f'{phrase} {i} gpu{""if i == 1 else "s"}')
 
@@ -72,7 +77,7 @@ def end_end_stats(machine='single'):
 	phrase = machine_type_phrase[machine]
 
 	ax = None
-	for i in range(1, 4):
+	for i in range(1, machine_num_gpus[machine]):
 		df = read_csv(f'{root}/{i}_gpu_epoch.csv', )
 		ax = df.plot(kind='line', ax=ax)
 
@@ -87,7 +92,7 @@ def percentage_time_spent(machine='single', add_synchronisation=False):
 
 	root = machine_type_data[machine]
 
-	for i in range(1, 4):
+	for i in range(1, machine_num_gpus[machine]):
 		operations = []
 		label_vals = []
 		for label in keyword_map.keys():
@@ -120,16 +125,16 @@ def percentage_time_spent(machine='single', add_synchronisation=False):
 
 
 if __name__ == '__main__':
-	# end_end_stats_composition(stat='sampling')
-	# end_end_stats_composition(stat='features')
-	# end_end_stats_composition(stat='training')
-	# # TODO Maybe make use of the min/max?
-	#
-	# end_end_stats()
-	#
-	# percentage_time_spent()
-	# percentage_time_spent(add_synchronisation=True)
+	end_end_stats_composition(stat='sampling')
+	end_end_stats_composition(stat='features')
+	end_end_stats_composition(stat='training')
+	# TODO Maybe make use of the min/max?
+	end_end_stats()
 
+	percentage_time_spent()
+	percentage_time_spent(add_synchronisation=True)
+
+	# Multi Node end-end tests
 	machine = 'multi'
 	end_end_stats_composition(machine=machine, stat='sampling')
 	end_end_stats_composition(machine=machine, stat='features')
