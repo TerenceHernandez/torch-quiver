@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
@@ -56,6 +58,14 @@ def read_csv(file_name, uses_headers=True, usecols=None):
 	return pd.read_csv(file_name, header=0 if uses_headers else None, usecols=usecols)
 
 
+def save_plot(root, name):
+	save_path = f'{root}_plots/'
+	path = Path(save_path)
+	path.mkdir(parents=True, exist_ok=True)
+
+	plt.savefig(f'{save_path}{name}.png', format='png')
+
+
 def end_end_stats_composition(machine='single', stat='sampling'):
 	root = machine_type_data[machine]
 	phrase = machine_type_phrase[machine]
@@ -71,6 +81,7 @@ def end_end_stats_composition(machine='single', stat='sampling'):
 
 	plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
 	plt.tight_layout()
+	save_plot(root, name=f'{machine}_{stat}')
 	plt.show()
 
 
@@ -89,6 +100,7 @@ def end_end_stats(machine='single'):
 
 	plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
 	plt.tight_layout()
+	save_plot(root, name=f'{machine}_epoch')
 	plt.show()
 
 
@@ -124,6 +136,7 @@ def percentage_time_spent(machine='single', add_synchronisation=False):
 		ax1.axis('equal')
 
 		ax1.set_title(f"Percentage time spent on each operation using {i} GPUs")
+		save_plot(root, name=f'{machine}_percentage_time_spent_{"w_sync" if add_synchronisation else ""}')
 		plt.show()
 
 
@@ -139,12 +152,12 @@ if __name__ == '__main__':
 
 	# Multi Node end-end tests
 	machine = 'multi'
-	# end_end_stats_composition(machine=machine, stat='sampling')
-	# end_end_stats_composition(machine=machine, stat='features')
-	# end_end_stats_composition(machine=machine, stat='training')
+	end_end_stats_composition(machine=machine, stat='sampling')
+	end_end_stats_composition(machine=machine, stat='features')
+	end_end_stats_composition(machine=machine, stat='training')
 	# TODO Maybe make use of the min/max?
 
-	# end_end_stats(machine=machine)
+	end_end_stats(machine=machine)
 	#
 	# percentage_time_spent(machine=machine)
-	# percentage_time_spent(machine=machine, add_synchronisation=True)
+	percentage_time_spent(machine=machine, add_synchronisation=True)
