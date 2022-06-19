@@ -136,7 +136,7 @@ def percentage_time_spent(machine='single', add_synchronisation=False):
 		ax1.axis('equal')
 
 		ax1.set_title(f"Percentage time spent on each operation using {i} GPUs")
-		save_plot(root, name=f'{machine}_percentage_time_spent_{"w_sync" if add_synchronisation else ""}')
+		save_plot(root, name=f'{machine}_{i}_gpus_percentage_time_spent_{"w_sync" if add_synchronisation else ""}')
 		plt.show()
 
 
