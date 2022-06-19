@@ -20,8 +20,8 @@ machine_type_phrase = {
 }
 
 machine_num_gpus = {
-	"single": 4,
-	"multi": 3
+	"single": 5,
+	"multi": 4
 }
 
 def convert():
@@ -79,9 +79,9 @@ def end_end_stats(machine='single'):
 	ax = None
 	for i in range(1, machine_num_gpus[machine]):
 		df = read_csv(f'{root}/{i}_gpu_epoch.csv', )
-		ax = df.plot(kind='line', ax=ax)
+		ax = df.plot(y='0', kind='line', ax=ax)
 
-	ax.legend([f'{phrase} {i} gpu{"" if i == 1 else "s"}' for i in range(1, 4)])
+	ax.legend([f'{phrase} {i} gpu{"" if i == 1 else "s"}' for i in range(1, machine_num_gpus[machine])])
 	ax.set_title(f"Time spent in total")
 	ax.set_xlabel("Epoch")
 	ax.set_ylabel("Time in s")
@@ -136,12 +136,12 @@ if __name__ == '__main__':
 
 	# Multi Node end-end tests
 	machine = 'multi'
-	end_end_stats_composition(machine=machine, stat='sampling')
-	end_end_stats_composition(machine=machine, stat='features')
-	end_end_stats_composition(machine=machine, stat='training')
+	# end_end_stats_composition(machine=machine, stat='sampling')
+	# end_end_stats_composition(machine=machine, stat='features')
+	# end_end_stats_composition(machine=machine, stat='training')
 	# TODO Maybe make use of the min/max?
 
-	end_end_stats(machine=machine)
-
-	percentage_time_spent(machine=machine)
-	percentage_time_spent(machine=machine, add_synchronisation=True)
+	# end_end_stats(machine=machine)
+	#
+	# percentage_time_spent(machine=machine)
+	# percentage_time_spent(machine=machine, add_synchronisation=True)
