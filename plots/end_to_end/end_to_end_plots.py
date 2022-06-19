@@ -69,6 +69,8 @@ def end_end_stats_composition(machine='single', stat='sampling'):
 	ax.set_xlabel("Epoch")
 	ax.set_ylabel("Time in s")
 
+	plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
+	plt.tight_layout()
 	plt.show()
 
 
@@ -79,12 +81,14 @@ def end_end_stats(machine='single'):
 	ax = None
 	for i in range(1, machine_num_gpus[machine]):
 		df = read_csv(f'{root}/{i}_gpu_epoch.csv', )
-		ax = df.plot(y='0', kind='line', ax=ax)
+		ax = df.plot(y='0', kind='line', ax=ax, label=f'{phrase} {i} gpu{""if i == 1 else "s"}')
 
-	ax.legend([f'{phrase} {i} gpu{"" if i == 1 else "s"}' for i in range(1, machine_num_gpus[machine])])
 	ax.set_title(f"Time spent in total")
 	ax.set_xlabel("Epoch")
 	ax.set_ylabel("Time in s")
+
+	plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
+	plt.tight_layout()
 	plt.show()
 
 
@@ -120,7 +124,6 @@ def percentage_time_spent(machine='single', add_synchronisation=False):
 		ax1.axis('equal')
 
 		ax1.set_title(f"Percentage time spent on each operation using {i} GPUs")
-		plt.tight_layout()
 		plt.show()
 
 
@@ -131,7 +134,7 @@ if __name__ == '__main__':
 	# TODO Maybe make use of the min/max?
 	end_end_stats()
 
-	percentage_time_spent()
+	# percentage_time_spent()
 	percentage_time_spent(add_synchronisation=True)
 
 	# Multi Node end-end tests
