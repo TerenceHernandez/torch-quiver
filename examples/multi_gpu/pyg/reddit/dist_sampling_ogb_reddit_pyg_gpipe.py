@@ -173,52 +173,6 @@ class PipelineableSAGEConv(MessagePassing):
 			after_SAGE = self.conv((x_s, x_target), edge_index)
 			print('a SAGE', after_SAGE.size())
 
-
-			# nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
-
-			# x, edj0, edj1, size0, size1 = x_edgs
-
-			# Calculate the right layers
-			# edge_index, _, size = adjs[self.layer]
-			# edge_index = edj0 if self.layer == 0 else edj1
-			# size = size0 if self.layer == 0 else size1
-
-			# Experiments using ni_ds and global graph
-			# nid_t = nid_t0 if self.layer == 0 else nid_t1
-			# nid_s = nid_s0 if self.layer == 0 else nid_s1
-			# edge_idx = edge0 if self.layer == 0 else edge1
-			#
-			# device = self.conv.lin_l.weight.get_device()
-			#
-			# nid_t = nid_t.squeeze().cpu()
-			# nid_s = nid_s.squeeze().cpu()
-			# print('Got here')
-			#
-			# x_target = self.x[nid_t].to(device)
-			# x_s = self.x[nid_s].to(device)
-			# edge_idx.to(device)
-
-			# x_target = x[:size]
-
-			# print_device(x, 'x')
-			# print_device(x_target, 'x_target')
-			# print_device(edge_index, 'edge_index')
-
-			# if self.rank == 0:
-			# 	print(f'layer:{self.layer}', x.size(), edge_index[1].size(0))
-			# print_device(self.conv.lin_l.weight, 'SAGEConv weights')
-			# print_device(self.conv.lin_l.bias, 'SAGEConv biias')
-			# after_SAGE = self.conv((x, x_target), edge_index)
-			# print('x', self.x.size())
-			# print('n_s', nid_s.size())
-			# print("b_sage", x_s.size(), x_target.size())
-			# after_SAGE = self.conv((x_s, x_target), edge_idx)
-			# print("a_sage", after_SAGE.size())
-			# if self.rank == 0:
-			# 	print(f'layer:{self.layer}, after_SAGE:', after_SAGE.size())
-
-			# return after_SAGE, edj0, edj1, size0, size1
-			# return after_SAGE, nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1
 			return after_SAGE, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2
 
 	# else:
@@ -323,9 +277,6 @@ class ModifiedLogMax(Module):
 def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, num_classes):
 	os.environ['MASTER_ADDR'] = 'localhost'
 	os.environ['MASTER_PORT'] = '12355'
-	# dist.init_process_group('nccl', rank=rank, world_size=world_size)
-	# torch.torch.cuda.set_device(rank)
-	# init_rpc(f'worker{rank}', rank=rank, world_size=world_size)
 
 	train_mask, val_mask, test_mask = data_split
 	train_idx = train_mask.nonzero(as_tuple=False).view(-1)
@@ -356,10 +307,6 @@ def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, 
 	if rank == 0:
 		print(model)
 
-	# model = GPipe(model, balance=[1, 2, 2], chunks=1, checkpoint='never')
-
-	# TODO change input to tensor type (concatenate each batch with indexes, and sizes)?
-
 	# model = Pipe(model, chunks=1, checkpoint='never')
 	model = GPipe(model, balance=[1, 2, 2], chunks=chunk_num, checkpoint='never')
 	# model = DistributedDataParallel(model, device_ids=[rank])
@@ -386,39 +333,7 @@ def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, 
 			adjs = [adj.edge_index for adj in adjs]
 			adjs = [adj.to(rank) for adj in adjs]
 
-			# adjs = torch.stack(adjs).to(rank)
-
 			optimizer.zero_grad()
-
-			# TODO calculate x and x_target manually for all sampling layer, make edge_index i.e. adjs global (or not)!
-			# TODO using chunk_num, multiply edge_index across manually
-			# TODO using chunk_num
-			# print(n_id.size())
-
-			# n_id_targets_list = []
-			# n_id_sources_list = []
-
-			# for size in sizes:
-			# 	n_id_targets = n_id[:size]
-			# 	n_id_sources_only = n_id[size:]
-			#
-			# 	n_id_targets = torch.chunk(n_id_targets, chunks=chunk_num)
-			# 	n_id_targets = torch.stack(n_id_targets)
-			#
-			# 	n_id_sources_only = torch.chunk(n_id_sources_only, chunks=chunk_num)
-			# 	n_id_sources_only = torch.stack(n_id_sources_only)
-			#
-			# 	# print("1", n_id_sources_only.size(), n_id_targets.size())
-			#
-			# 	if chunk_num != 1:
-			# 		n_id_targets = n_id_targets.squeeze()
-			# 		n_id_sources_only = n_id_sources_only.squeeze()
-			#
-			# 	# print("2", n_id_sources_only.size(), n_id_targets.size())
-			# 	n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
-			#
-			# 	n_id_targets_list.append(n_id_targets)
-			# 	n_id_sources_list.append(n_id_sources)
 
 			# 1st layer information
 			n_id_targets = n_id[:sizes[0]]
@@ -451,12 +366,9 @@ def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, 
 																int(padding_choice))
 
 				n_id_sources_only = torch.stack(n_id_sources_only)
-				# print("1", n_id_sources_only.size(), n_id_targets.size())
 
 				n_id_targets = n_id_targets.squeeze()
 				n_id_sources_only = n_id_sources_only.squeeze()
-
-				# print("2", n_id_sources_only.size(), n_id_targets.size())
 
 				n_id_sources = torch.cat((n_id_targets, n_id_sources_only), dim=1)
 
@@ -480,40 +392,7 @@ def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, 
 				size_2
 			))
 
-			# out = model(
-			# 	(n_id_targets_list[0].to(rank),
-			# 	 n_id_targets_list[1].to(rank),
-			# 	 n_id_sources_list[0].to(rank),
-			# 	 n_id_sources_list[1].to(rank),
-			# 	 edge_indexes[0],
-			# 	 edge_indexes[1])
-			# )
-
-			# out = model((x[n_id].to(rank), adjs[0], adjs[1], sizes[0], sizes[1]))
-			# out = model((x[n_id], adjs[0], adjs[1], sizes[0], sizes[1]))
-			#
-			# print("YSIZE",y.size())
-			# print("N_ID SIZE",n_id.size())
-			# print("Batch_size", batch_size)
-			# print("YSIZE",y.size())
-			# print("N_id",n_id[:batch_size].size())
-			#
-			# print("MAX", torch.max(n_id[:batch_size]))
-
-			# node_ids = n_id
-			# filter_max = node_ids < y.size(0)
-			# node_ids = node_ids[torch.nonzero(filter_max)][:batch_size]
-			# print("Max 2", torch.max(node_ids))
-
-			# print("OUT", out.size(), y[n_id[:batch_size]].size())
-			# loss = F.nll_loss(out, y[node_ids])
-			# print_device(out, "out")
-			# print_device(y, "y")
-			# print_device(n_id, "n_id")
-
 			out = out.to(rank)
-			# print("OUT", out.size())
-			# print("LABEL", y[n_id[:batch_size]].size())
 
 			loss = F.nll_loss(out, y[n_id[:batch_size]])
 
@@ -561,8 +440,5 @@ if __name__ == '__main__':
 	world_size = 3  # torch.cuda.device_count()
 	print('Let\'s use', world_size, 'GPUs!')
 	data_split = (data.train_mask, data.val_mask, data.test_mask)
-	# mp.spawn(run,
-	# 				 args=(world_size, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes),
-	# 				 nprocs=world_size, join=True)
 
 	run(0, world_size, args.num_chunks, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes)
