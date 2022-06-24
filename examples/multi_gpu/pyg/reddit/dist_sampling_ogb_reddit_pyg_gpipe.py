@@ -1,3 +1,4 @@
+import argparse
 import os
 from typing import Union, List, Optional
 
@@ -308,9 +309,7 @@ class ModifiedLogMax(Module):
 		return 'dim={dim}'.format(dim=self.dim)
 
 
-def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classes):
-	chunk_num = 1
-
+def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, num_classes):
 	os.environ['MASTER_ADDR'] = 'localhost'
 	os.environ['MASTER_PORT'] = '12355'
 	# dist.init_process_group('nccl', rank=rank, world_size=world_size)
@@ -542,7 +541,10 @@ def run(rank, world_size, data_split, edge_index, x, y, num_features, num_classe
 
 
 if __name__ == '__main__':
-	dataset = Reddit('/data-b/terencehernandez/Reddit')
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--num_chunks', type=int, default=1)
+
+	dataset = Reddit('/data/terencehernandez/Reddit')
 	data = dataset[0]
 	world_size = 3  # torch.cuda.device_count()
 	print('Let\'s use', world_size, 'GPUs!')
@@ -551,4 +553,4 @@ if __name__ == '__main__':
 	# 				 args=(world_size, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes),
 	# 				 nprocs=world_size, join=True)
 
-	run(0, world_size, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes)
+	run(0, world_size, args.num_chunks, data_split, data.edge_index, data.x, data.y, dataset.num_features, dataset.num_classes)
