@@ -130,7 +130,7 @@ class PipelineableSAGEConv(MessagePassing):
 
 			x, n_id_sources, n_id_targets, edge_indexes0, edge_indexes1, size_2 = x_edgs
 
-			# print("arg sizes", x.size(), n_id_sources.size(), n_id_targets.size(), edge_indexes0.size(), edge_indexes1.size(), size_2.size())
+			print("arg sizes", x.size(), n_id_sources.size(), n_id_targets.size(), edge_indexes0.size(), edge_indexes1.size(), size_2.size())
 
 			device = self.conv.lin_l.weight.get_device()
 			if self.layer == 0:
@@ -157,10 +157,10 @@ class PipelineableSAGEConv(MessagePassing):
 				x_s = x
 				edge_index = edge_index.to(device)
 
-			# print('b SAGE', x_s.size(), x_target.size())
+			print('b SAGE', x_s.size(), x_target.size())
 
 			after_SAGE = self.conv((x_s, x_target), edge_index)
-			# print('a SAGE', after_SAGE.size())
+			print('a SAGE', after_SAGE.size())
 
 
 			# nid_t0, nid_t1, nid_s0, nid_s1, edge0, edge1 = x_edgs
@@ -457,8 +457,8 @@ def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, 
 				edge_index = adj.repeat(chunk_num, 1)
 				edge_indexes.append(edge_index)
 
-			# print("model args", torch.empty(0).size(), n_id_sources.size(), n_id_targets.size(),
-			# 			edge_indexes[0].size(), edge_indexes[1].size(), size_2.size())
+			print("model args", torch.empty(0).size(), n_id_sources.size(), n_id_targets.size(),
+						edge_indexes[0].size(), edge_indexes[1].size(), size_2.size())
 
 			out = model((
 				torch.empty(0),
