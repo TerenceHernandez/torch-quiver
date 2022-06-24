@@ -124,12 +124,12 @@ class PipelineableSAGEConv(MessagePassing):
 	def reset_parameters(self):
 		self.conv.reset_parameters()
 
-	def test(self, subset, edge_index):
-		node_mask = subset
-		print("EDGE 0 MASK", node_mask[edge_index[0]])
-		print("EDGE 1 MASK", node_mask[edge_index[1]])
-		edge_mask = node_mask[edge_index[0]] & node_mask[edge_index[1]]
-		edge_index = edge_index[:, edge_mask]
+	# def test_subgraph(self, subset, edge_index):
+	# 	node_mask = subset
+	# 	print("EDGE 0 MASK", node_mask[edge_index[0]])
+	# 	print("EDGE 1 MASK", node_mask[edge_index[1]])
+	# 	edge_mask = node_mask[edge_index[0]] & node_mask[edge_index[1]]
+	# 	edge_index = edge_index[:, edge_mask]
 
 	def forward(self, x_edgs):
 		if self.training:
@@ -146,10 +146,7 @@ class PipelineableSAGEConv(MessagePassing):
 				if len(list(n_id_sources.size())) > 1:
 					n_id_sources = n_id_sources[0]
 					n_id_targets = n_id_targets[0]
-					print("SOURCE NODES", n_id_sources)
-					print("EDGE INDEX", edge_indexes0)
 
-					self.test(n_id_sources, edge_indexes0)
 					edge_index, _ = subgraph(n_id_sources, edge_indexes0)
 
 				nid_s = n_id_sources.cpu()
