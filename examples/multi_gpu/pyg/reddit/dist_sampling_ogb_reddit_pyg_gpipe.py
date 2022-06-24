@@ -139,6 +139,7 @@ class PipelineableSAGEConv(MessagePassing):
 				if len(list(n_id_sources.size())) > 1:
 					n_id_sources = n_id_sources[0]
 					n_id_targets = n_id_targets[0]
+					print("SOURCE NODES", n_id_sources)
 					edge_index, _ = subgraph(n_id_sources, edge_indexes0)
 
 				nid_s = n_id_sources.cpu()
