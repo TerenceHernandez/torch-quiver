@@ -543,6 +543,7 @@ def run(rank, world_size,chunk_num, data_split, edge_index, x, y, num_features, 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--num_chunks', type=int, default=1)
+	args = parser.parse_args()
 
 	dataset = Reddit('/data/terencehernandez/Reddit')
 	data = dataset[0]
