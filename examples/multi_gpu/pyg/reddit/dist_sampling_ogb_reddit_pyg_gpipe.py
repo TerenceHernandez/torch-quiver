@@ -126,8 +126,9 @@ class PipelineableSAGEConv(MessagePassing):
 
 	def test(self, subset, edge_index):
 		node_mask = subset
+		print("EDGE 0 MASK", node_mask[edge_index[0]])
+		print("EDGE 1 MASK", node_mask[edge_index[1]])
 		edge_mask = node_mask[edge_index[0]] & node_mask[edge_index[1]]
-		print("MASK", edge_mask)
 		edge_index = edge_index[:, edge_mask]
 
 	def forward(self, x_edgs):
